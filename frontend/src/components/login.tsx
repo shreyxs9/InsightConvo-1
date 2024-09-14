@@ -1,17 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { IoMoon, IoSunny } from "react-icons/io5";
 import { FcGoogle } from "react-icons/fc";
 import axios from "axios";
 
 const Login: React.FC = () => {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem("darkMode");
+    return savedMode === "true";
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add("dark");
+      localStorage.setItem("darkMode", "true");
+    } else {
+      document.body.classList.remove("dark");
+      localStorage.setItem("darkMode", "false");
+    }
+  }, [darkMode]);
+
   const toggleTheme = () => {
-    setDarkMode(!darkMode);
+    setDarkMode((prevMode) => !prevMode);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -31,10 +44,14 @@ const Login: React.FC = () => {
       // Save token in local storage or handle it as needed
       localStorage.setItem("token", response.data.token);
 
-      // Redirect to dashboard or home page
       window.location.href = "/";
     } catch (error) {
-      setError(error.response?.data?.error || "Login failed");
+      let errorMessage = "Failed to do something exceptional";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      console.log(errorMessage);
+      setError(errorMessage || "Login failed");
     } finally {
       setLoading(false);
     }

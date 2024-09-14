@@ -1,18 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { IoMoon, IoSunny } from "react-icons/io5";
 import { FcGoogle } from "react-icons/fc";
 import axios from "axios";
 
 const Signup: React.FC = () => {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem("darkMode");
+    return savedMode === "true";
+  });
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [userType, setUserType] = useState<"interviewer" | "interviewee" | "">(
+    ""
+  ); // Added userType state
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add("dark");
+      localStorage.setItem("darkMode", "true");
+    } else {
+      document.body.classList.remove("dark");
+      localStorage.setItem("darkMode", "false");
+    }
+  }, [darkMode]);
+
   const toggleTheme = () => {
-    setDarkMode(!darkMode);
+    setDarkMode((prevMode) => !prevMode);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -27,14 +43,19 @@ const Signup: React.FC = () => {
           name,
           email,
           password,
+          userType, // Include userType in the request
         }
       );
 
       localStorage.setItem("token", response.data.token);
 
-      window.location.href = "/home";
+      window.location.href = "/";
     } catch (error) {
-      setError(error.response?.data?.error || "Signup failed");
+      let errorMessage = "Failed to do something exceptional";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      setError(errorMessage || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -123,6 +144,28 @@ const Signup: React.FC = () => {
               }`}
               required
             />
+          </div>
+          <div>
+            <label htmlFor="userType" className="block text-sm font-medium">
+              User Type
+            </label>
+            <select
+              id="userType"
+              value={userType}
+              onChange={(e) =>
+                setUserType(e.target.value as "interviewer" | "interviewee")
+              }
+              className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 ${
+                darkMode
+                  ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500"
+                  : "bg-white border-gray-300 text-gray-900 focus:ring-blue-500"
+              }`}
+              required
+            >
+              <option value="">Select user type</option>
+              <option value="interviewer">Interviewer</option>
+              <option value="interviewee">Interviewee</option>
+            </select>
           </div>
           <button
             type="submit"
