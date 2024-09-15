@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import AdminHome from "./components/admin_home";
+import AdminHome from "./components/admin/admin_home";
 import Login from "./components/login";
 import Signup from "./components/signup";
-import UserHome from "./components/user_home";
-import Profile from "./components/Profile";
+import UserHome from "./components/user/user_home";
+import Profile from "./components/user/Profile";
 
 const ProtectedRoute: React.FC = () => {
   const [loading, setLoading] = useState(true);

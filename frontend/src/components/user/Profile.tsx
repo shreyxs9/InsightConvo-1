@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import Nav from "./nav"; // Adjust the import path as necessary
+import Nav from "../../models/nav"; // Adjust the import path as necessary
 
 const Profile = () => {
   const [profileData, setProfileData] = useState({
@@ -16,7 +16,7 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [successMessage, setSuccessMessage] = useState(""); // State for success message
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {

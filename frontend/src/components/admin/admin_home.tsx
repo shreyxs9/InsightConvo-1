@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { jwtDecode } from "jwt-decode"; // Import without destructuring
-import Nav from "./nav";
-import MeetingCard from "../models/meetingcard";
-import AddMeeting from "../models/addmeetings";
+import Nav from "../../models/nav";
+import MeetingCard from "../../models/meetingcard";
+import AddMeeting from "../../models/addmeetings";
 import { FaTimes } from "react-icons/fa";
 
 interface Meeting {
