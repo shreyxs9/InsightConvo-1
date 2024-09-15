@@ -74,17 +74,17 @@ const UserHome: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-500">
+    <div className="min-h-screen p-2 bg-white dark:bg-gray-900 transition-colors duration-500">
       <Nav />
       {userName && (
-        <p className="text-lg text-gray-600 dark:text-gray-300">
+        <p className="text-lg text-gray-600 m-3 dark:text-gray-300">
           Welcome, {userName}!
         </p>
       )}
 
       <div className="container mx-auto mt-8 p-4">
         {/* Upcoming Meetings Section */}
-        <h2 className="text-2xl font-semibold text-black dark:text-white mb-4">
+        <h2 className="text-2xl font-semibold text-black dark:text-white ml-3 mb-4">
           Upcoming Meetings
         </h2>
         <div className="grid gap-4 p-4 md:grid-cols-2">
@@ -103,10 +103,10 @@ const UserHome: React.FC = () => {
         </div>
 
         {/* Past Meetings Section */}
-        <h2 className="text-2xl font-semibold text-black dark:text-white mt-8 mb-4">
+        <h2 className="text-2xl font-semibold text-black dark:text-white ml-3 mt-8 mb-4">
           Past Meetings
         </h2>
-        <div className="grid gap-4 p-4 md:grid-cols-2">
+        <div className="grid ml-4 gap-4 p-4 md:grid-cols-2">
           {meetings
             .filter((meeting) => !meeting.isUpcoming)
             .map((meeting) => (
