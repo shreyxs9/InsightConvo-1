@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode"; // Import jwt-decode to decode the JWT
 
 interface AddMeetingProps {
   onMeetingAdded: () => void;
@@ -16,11 +17,36 @@ const AddMeeting: React.FC<AddMeetingProps> = ({ onMeetingAdded }) => {
     jobDescription: "",
     interviewType: "",
     importantQuestions: [""],
+    interviewerName: "", // Add interviewerName to initial formData
+    interviewerEmail: "", // Add interviewerEmail to initial formData
   };
 
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // Function to decode JWT token
+  const decodeToken = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const decodedToken: any = jwtDecode(token);
+      return {
+        interviewerName: decodedToken.name, // Assuming 'name' is in the token payload
+        interviewerEmail: decodedToken.email, // Assuming 'email' is in the token payload
+      };
+    }
+    return { interviewerName: "", interviewerEmail: "" };
+  };
+
+  // Decode token and set interviewer info
+  React.useEffect(() => {
+    const interviewerInfo = decodeToken();
+    setFormData((prevData) => ({
+      ...prevData,
+      interviewerName: interviewerInfo.interviewerName,
+      interviewerEmail: interviewerInfo.interviewerEmail,
+    }));
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -54,7 +80,7 @@ const AddMeeting: React.FC<AddMeetingProps> = ({ onMeetingAdded }) => {
     setMessage(""); // Reset the message
 
     try {
-      await axios.post("http://localhost:5000/api/meetings/", formData);
+      await axios.post("http://localhost:5000/admin/meetings/", formData);
       setMessage("Meeting added successfully");
       setFormData(initialFormData); // Reset form fields
       onMeetingAdded(); // Call the callback function

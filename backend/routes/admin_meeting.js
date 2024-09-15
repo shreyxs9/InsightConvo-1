@@ -1,28 +1,34 @@
 // routes/meetings.js
 const express = require('express');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
+const Meeting = require('../models/meeting');
+const jwtSecret = process.env.JWT_SECRET;
 
-// Define the Meeting schema and model directly in this file
-const meetingSchema = new mongoose.Schema({
-  name: { type: String, required: true }, // Meeting name
-  date: { type: Date, required: true },
-  time: { type: String, required: true },
-  intervieweeName: { type: String, required: true },
-  email: { type: String, required: true },
-  role: { type: String, required: true },
-  jobDescription: { type: String, required: true },
-  interviewType: { type: String, required: true },
-  importantQuestions: { type: [String], required: true }, // Array of strings
-});
 
-// Create the Meeting model
-const Meeting = mongoose.model('Meeting', meetingSchema);
+// Middleware to verify token and extract user info
+const authenticate = (req, res, next) => {
+    const token = req.headers.authorization; // Directly get the token
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+    try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded;
+      next();
+    } catch (error) {
+      res.status(401).json({ error: 'Invalid token' });
+    }
+  };
+  
 
-// Get all meetings
-router.get('/', async (req, res) => {
+// Get all meetings for the interviewer
+router.get('/', authenticate, async (req, res) => {
   try {
-    const meetings = await Meeting.find();
+    const interviewerEmail = req.user.email; // Get interviewer's email from the decoded token
+
+    const meetings = await Meeting.find({ interviewerEmail }); // Fetch meetings for this interviewer
     const currentDate = new Date();
 
     // Map meetings to include 'isUpcoming'
@@ -39,7 +45,7 @@ router.get('/', async (req, res) => {
 
 // Create a new meeting
 router.post('/', async (req, res) => {
-  const { name, date, time, intervieweeName, email, role, jobDescription, interviewType, importantQuestions } = req.body;
+  const { name, date, time, intervieweeName, email, role, jobDescription, interviewType, importantQuestions, interviewerName, interviewerEmail } = req.body;
 
   try {
     const meeting = new Meeting({
@@ -52,6 +58,9 @@ router.post('/', async (req, res) => {
       jobDescription,
       interviewType,
       importantQuestions,
+      interviewerName,
+      interviewerEmail
+
     });
     await meeting.save();
     res.status(201).json(meeting);

@@ -20,8 +20,11 @@ const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
 // Meeting Routes
-const meetingRoutes = require('./routes/meetings');
-app.use('/api/meetings', meetingRoutes);
+const adminmeetingRoutes = require('./routes/admin_meeting');
+app.use('/admin/meetings', adminmeetingRoutes);
+
+const usermeetingRoutes = require('./routes/user_meeting');
+app.use('/user/meetings', usermeetingRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

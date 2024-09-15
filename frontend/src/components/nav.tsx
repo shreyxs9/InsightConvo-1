@@ -77,7 +77,7 @@ function Nav() {
           } absolute top-16 left-0 w-full bg-gray-50 md:bg-white dark:bg-gray-900 md:dark:bg-gray-900 md:dark:border-gray-700 md:static md:w-auto md:flex md:items-center md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 z-50`} // Added z-50 for dropdown to be on top
           id="navbar-default"
         >
-          <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg dark:bg-gray-800 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0">
+          <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg dark:bg-gray-900 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0">
             <li>
               <a
                 href="#"
@@ -100,7 +100,7 @@ function Nav() {
                 href="#"
                 className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent"
               >
-                Services
+                Profile
               </a>
             </li>
             <li>
