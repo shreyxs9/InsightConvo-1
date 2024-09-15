@@ -4,6 +4,7 @@ import AdminHome from "./components/admin_home";
 import Login from "./components/login";
 import Signup from "./components/signup";
 import UserHome from "./components/user_home";
+import Profile from "./components/Profile";
 
 const ProtectedRoute: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -55,6 +56,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<ProtectedRoute />} />
+        <Route path="/user/profile" element={<Profile />} />
         <Route path="/user" element={<UserHome />} />
         <Route path="/admin" element={<AdminHome />} />
         <Route path="/login" element={<Login />} />

@@ -1,27 +1,16 @@
+// routes/auth.js
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const axios = require('axios');
-const mongoose = require('mongoose');
-
-// Define User schema
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: { type: String, unique: true },
-  password: String,
-  googleId: String,
-  userType: { type: String, default: 'user' }, // Field to determine user type (e.g., 'interviewer' or 'user')
-});
-
-const User = mongoose.model('User', userSchema);
-
+const User = require('../models/user'); // Import the User model
 const jwtSecret = process.env.JWT_SECRET;
 const jwtExpiry = '1h';
 
 // Helper function to create a JWT token
 const createToken = (user) => {
-  return jwt.sign({ name: user.name, email: user.email, type: user.type }, jwtSecret, { expiresIn: jwtExpiry });
+  return jwt.sign({ name: user.name, email: user.email, type: user.userType }, jwtSecret, { expiresIn: jwtExpiry });
 };
 
 // Middleware to authenticate and extract user from token
@@ -70,8 +59,6 @@ router.post('/signup', async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
-
 
 // Login route
 router.post('/login', async (req, res) => {
@@ -127,6 +114,7 @@ router.get('/google/callback', async (req, res) => {
   }
 });
 
+// Route to get user type
 router.get('/userType', authenticateToken, async (req, res) => {
   try {
     const { email } = req.user;
@@ -135,6 +123,45 @@ router.get('/userType', authenticateToken, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     const userType = user.userType === 'interviewer' ? 'admin' : 'user';
     res.status(200).json({ userType });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Fetch user profile
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { email } = req.user;
+    const user = await User.findOne({ email });
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const { name, mobile, dob, location, college, collegeLocation, cgpa, skills } = user;
+    res.status(200).json({ name, email, mobile, dob, location, college, collegeLocation, cgpa, skills });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { email } = req.user; // Email is extracted from the token, so it cannot be updated
+    const { name, mobile, dob, location, college, collegeLocation, cgpa, skills } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.name = name;
+    user.mobile = mobile;
+    user.dob = dob;
+    user.location = location;
+    user.college = college;
+    user.collegeLocation = collegeLocation;
+    user.cgpa = cgpa;
+    user.skills = skills;
+
+    await user.save();
+    res.status(200).json({ message: 'Profile updated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
