@@ -5,6 +5,7 @@ import Login from "./components/login";
 import Signup from "./components/signup";
 import UserHome from "./components/user/user_home";
 import Profile from "./components/user/Profile";
+import MeetingDashboard from "./components/user/meeting";
 
 const ProtectedRoute: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,7 @@ function App() {
         <Route path="/" element={<ProtectedRoute />} />
         <Route path="/user/profile" element={<Profile />} />
         <Route path="/user" element={<UserHome />} />
+        <Route path="/user/meeting" element={<MeetingDashboard />} />
         <Route path="/admin" element={<AdminHome />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
