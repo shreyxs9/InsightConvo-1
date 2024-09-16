@@ -59,7 +59,7 @@ function App() {
         <Route path="/" element={<ProtectedRoute />} />
         <Route path="/user/profile" element={<Profile />} />
         <Route path="/user" element={<UserHome />} />
-        <Route path="/user/meeting" element={<MeetingDashboard />} />
+        <Route path="/user/meeting/:meetingId" element={<MeetingDashboard />} />
         <Route path="/admin" element={<AdminHome />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />

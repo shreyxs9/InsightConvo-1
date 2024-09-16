@@ -6,7 +6,7 @@ const bcrypt = require('bcrypt');
 const axios = require('axios');
 const User = require('../models/user'); // Import the User model
 const jwtSecret = process.env.JWT_SECRET;
-const jwtExpiry = '1h';
+const jwtExpiry = '10h';
 
 // Helper function to create a JWT token
 const createToken = (user) => {

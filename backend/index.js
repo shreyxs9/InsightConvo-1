@@ -41,6 +41,10 @@ app.use('/admin/meetings', adminmeetingRoutes);
 const usermeetingRoutes = require('./routes/user_meeting');
 app.use('/user/meetings', usermeetingRoutes);
 
+const uploadPdfRoute = require('./routes/resume'); // Adjust path as needed
+app.use('/api', uploadPdfRoute);
+
+
 // Socket.io connection
 io.on('connection', (socket) => {
   console.log('New WebSocket connection');

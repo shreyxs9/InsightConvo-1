@@ -7,13 +7,33 @@ import {
   IoCall,
   IoCallSharp,
 } from "react-icons/io5";
+import { jwtDecode } from "jwt-decode";
 import Nav from "../../models/nav";
+import RulesAndRegulations from "../../models/RulesAndRegulations";
 
 const MeetingDashboard: React.FC = () => {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(true); // For modal visibility
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Function to decode JWT and extract user information
+  const getUserFromToken = () => {
+    const token = localStorage.getItem("token"); // Adjust the key if it's different
+    if (!token) return null;
+
+    try {
+      const decoded: any = jwtDecode(token);
+      return {
+        name: decoded.name, // Adjust these fields based on your token's structure
+        email: decoded.email,
+      };
+    } catch (error) {
+      console.error("Failed to decode token:", error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     const startMediaStream = async () => {
@@ -51,17 +71,26 @@ const MeetingDashboard: React.FC = () => {
   const handleMicToggle = () => setIsMicOn(!isMicOn);
   const handleCameraToggle = () => setIsCameraOn(!isCameraOn);
 
+  // Handle modal close and file upload
+  const handleFileUpload = (file: File | null) => {
+    // Handle file upload logic here
+    console.log("Uploaded file:", file);
+    // You can add further handling or state updates as needed
+  };
+
   return (
     <>
       <Nav />
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
-        <div className="max-w-screen-xl mx-auto  p-8 rounded-lg shadow-lg bg-white dark:bg-gray-800">
-          <h2 className="text-2xl font-bold mb-6 text-center">
-            Meeting Dashboard
-          </h2>
+      <div className="min-h-screen bg-gray-100 p-8 dark:bg-gray-900 text-gray-900 dark:text-white">
+        <RulesAndRegulations
+          isModalOpen={isModalOpen}
+          setIsModalOpen={setIsModalOpen}
+          onFileUpload={handleFileUpload} // Pass the callback function
+        />
 
+        <div className="max-w-screen-xl mx-auto  p-8 rounded-lg shadow-lg bg-white dark:bg-gray-800">
           {/* Video Feed Area */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col mt-10 items-center">
             <div className="relative w-full md:w-3/5 h-80 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
               {/* Video feed */}
               <video
