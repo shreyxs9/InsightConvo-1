@@ -7,6 +7,7 @@ import {
   IoCall,
   IoCallSharp,
 } from "react-icons/io5";
+import { io } from 'socket.io-client';
 import { jwtDecode } from "jwt-decode";
 import Nav from "../../models/nav";
 import RulesAndRegulations from "../../models/RulesAndRegulations";
@@ -17,6 +18,7 @@ const MeetingDashboard: React.FC = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(true); // For modal visibility
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const socketRef = useRef<any>(null);
 
   // Function to decode JWT and extract user information
   const getUserFromToken = () => {
@@ -34,6 +36,23 @@ const MeetingDashboard: React.FC = () => {
       return null;
     }
   };
+
+  useEffect(() => {
+    // Initialize WebSocket connection
+    socketRef.current = io('http://localhost:5000'); // Backend URL
+
+    socketRef.current.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+
+    socketRef.current.on('disconnect', () => {
+      console.log('Disconnected from WebSocket server');
+    });
+
+    return () => {
+      socketRef.current.disconnect(); // Cleanup on unmount
+    };
+  }, []);
 
   useEffect(() => {
     const startMediaStream = async () => {
@@ -68,12 +87,34 @@ const MeetingDashboard: React.FC = () => {
     };
   }, [isCameraOn, isMicOn]);
 
+  useEffect(() => {
+    if (stream && socketRef.current) {
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.onended = () => {
+          console.log('Audio track ended');
+        };
+
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0 && socketRef.current) {
+            socketRef.current.emit('audio', event.data);
+          }
+        };
+        mediaRecorder.start(1000); // Send data every second
+
+        return () => {
+          mediaRecorder.stop();
+        };
+      }
+    }
+  }, [stream]);
+
   const handleMicToggle = () => setIsMicOn(!isMicOn);
   const handleCameraToggle = () => setIsCameraOn(!isCameraOn);
 
   // Handle modal close and file upload
   const handleFileUpload = (file: File | null) => {
-    // Handle file upload logic here
     console.log("Uploaded file:", file);
     // You can add further handling or state updates as needed
   };
@@ -82,11 +123,11 @@ const MeetingDashboard: React.FC = () => {
     <>
       <Nav />
       <div className="min-h-screen bg-gray-100 p-8 dark:bg-gray-900 text-gray-900 dark:text-white">
-        <RulesAndRegulations
+        {/* <RulesAndRegulations
           isModalOpen={isModalOpen}
           setIsModalOpen={setIsModalOpen}
           onFileUpload={handleFileUpload} // Pass the callback function
-        />
+        /> */}
 
         <div className="max-w-screen-xl mx-auto  p-8 rounded-lg shadow-lg bg-white dark:bg-gray-800">
           {/* Video Feed Area */}

@@ -4,6 +4,8 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const socketIo = require('socket.io');
+const { execFile } = require('child_process');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -19,7 +21,7 @@ const io = socketIo(server, {
 
 app.use(cors({
   origin: "http://localhost:5173", // Your frontend URL
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "PUT"],
   credentials: true
 }));
 app.use(express.json());
@@ -44,19 +46,58 @@ app.use('/user/meetings', usermeetingRoutes);
 const uploadPdfRoute = require('./routes/resume'); // Adjust path as needed
 app.use('/api', uploadPdfRoute);
 
+// MongoDB Schema
+const Transcription = mongoose.model('Transcription', new mongoose.Schema({
+  text: String,
+  timestamp: { type: Date, default: Date.now }
+}));
+
+// Function to call Whisper Python script
+function transcribeAudio(audioFilePath, callback) {
+  execFile('python3', ['./whisper_transcribe.py', audioFilePath], (error, stdout, stderr) => {
+    if (error) {
+      console.error(`execFile error: ${error}`);
+      return callback(error, null);
+    }
+    console.log(`Whisper Transcription: ${stdout}`);
+    callback(null, stdout);
+  });
+}
 
 // Socket.io connection
 io.on('connection', (socket) => {
   console.log('New WebSocket connection');
 
-  socket.on('video', (track) => {
-    console.log('Received video track');
-    // Handle video track data
-  });
-
-  socket.on('audio', (track) => {
+  socket.on('audio', (audioChunk) => {
     console.log('Received audio track');
-    // Handle audio track data
+    
+    // Save audioChunk to a temporary file
+    const filePath = `./uploads/audio_${Date.now()}.wav`;
+    fs.writeFileSync(filePath, audioChunk);
+
+    // Call the Whisper transcription function
+    transcribeAudio(filePath, (err, transcription) => {
+      if (err) {
+        console.error('Transcription error:', err);
+        return;
+      }
+
+      // Save transcription to MongoDB
+      const newTranscription = new Transcription({ text: transcription });
+      newTranscription.save()
+        .then(() => console.log('Transcription saved to MongoDB'))
+        .catch(err => console.error('Error saving transcription:', err));
+
+      // Clean up the temporary file
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error('Error deleting temporary file:', err);
+        }
+      });
+
+      // Send transcription result back to client
+      socket.emit('transcription', transcription);
+    });
   });
 
   socket.on('disconnect', () => {
