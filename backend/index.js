@@ -32,7 +32,12 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Auth Routes
+// MongoDB Schema
+const Transcription = mongoose.model('Transcription', new mongoose.Schema({
+  text: String,
+  timestamp: { type: Date, default: Date.now }
+}));
+
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
@@ -46,11 +51,12 @@ app.use('/user/meetings', usermeetingRoutes);
 // Google Cloud Speech-to-Text client
 const client = new speech.SpeechClient();
 
+// WebSocket Connection Handling
 io.on('connection', (socket) => {
-  console.log('New WebSocket connection');
+  console.log('New WebSocket connection:', socket.id);
 
   const passThroughStream = new PassThrough();
-  
+
   // Google Cloud Speech-to-Text streaming request
   const request = {
     config: {
@@ -62,10 +68,19 @@ io.on('connection', (socket) => {
   };
 
   const recognizeStream = client.streamingRecognize(request)
-    .on('data', (data) => {
+    .on('data', async (data) => {
       const transcription = data.results[0]?.alternatives[0]?.transcript || '';
       console.log('Transcription:', transcription);
       socket.emit('transcription', transcription);
+
+      // Save transcription to MongoDB
+      const newTranscription = new Transcription({ text: transcription });
+      try {
+        await newTranscription.save();
+        console.log('Transcription saved to MongoDB');
+      } catch (err) {
+        console.error('Error saving transcription:', err);
+      }
     })
     .on('error', (error) => {
       console.error('Error:', error);
@@ -79,10 +94,19 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
+  socket.on('disconnect', (reason) => {
+    console.log(`Client disconnected: ${socket.id}, Reason: ${reason}`);
     passThroughStream.end();
   });
+
+  socket.on('error', (error) => {
+    console.error('WebSocket Error:', error);
+  });
+});
+
+// Route for testing or additional functionality
+app.get('/api/test', (req, res) => {
+  res.send('API is working');
 });
 
 const PORT = process.env.PORT || 5000;

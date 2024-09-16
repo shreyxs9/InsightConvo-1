@@ -39,22 +39,30 @@ const MeetingDashboard: React.FC = () => {
 
   useEffect(() => {
     // Initialize WebSocket connection
-    socketRef.current = io("http://localhost:5000");
+    const connectWebSocket = () => {
+      socketRef.current = io("http://localhost:5000");
 
-    socketRef.current.on("connect", () => {
-      console.log("Connected to WebSocket server");
-    });
+      socketRef.current.on("connect", () => {
+        console.log("Connected to WebSocket server");
+      });
 
-    socketRef.current.on("disconnect", () => {
-      console.log("Disconnected from WebSocket server");
-    });
+      socketRef.current.on("disconnect", () => {
+        console.log("Disconnected from WebSocket server");
+        // Attempt to reconnect after a delay
+        setTimeout(connectWebSocket, 5000);
+      });
 
-    socketRef.current.on("transcription", (text: string) => {
-      setTranscribedText(text);
-    });
+      socketRef.current.on("transcription", (text: string) => {
+        setTranscribedText(text);
+      });
+    };
+
+    connectWebSocket();
 
     return () => {
-      socketRef.current.disconnect(); // Cleanup on unmount
+      if (socketRef.current) {
+        socketRef.current.disconnect(); // Cleanup on unmount
+      }
     };
   }, []);
 
@@ -71,24 +79,30 @@ const MeetingDashboard: React.FC = () => {
           videoRef.current.play();
         }
         console.log("Media stream started");
-
-        // Start recording if microphone is on
-        if (isMicOn) {
+    
+        if (isMicOn && userStream) {
           const mediaRecorder = new MediaRecorder(userStream);
           mediaRecorderRef.current = mediaRecorder;
-
+    
           mediaRecorder.ondataavailable = (event) => {
             if (event.data.size > 0 && socketRef.current) {
               socketRef.current.emit("audio", event.data);
             }
           };
-
+    
           mediaRecorder.start(10000); // Send data every 10 seconds
         }
       } catch (error) {
-        console.error("Error accessing media devices:", error);
+        if (error instanceof DOMException) {
+          console.error("Error accessing media devices:", error.message);
+          alert("There was an error accessing media devices. Please check your permissions and try again.");
+        } else {
+          console.error("Unexpected error:", error);
+        }
       }
     };
+    
+    
 
     if (isCameraOn || isMicOn) {
       startMediaStream();
@@ -108,31 +122,19 @@ const MeetingDashboard: React.FC = () => {
     };
   }, [isCameraOn, isMicOn]);
 
-  useEffect(() => {
-    if (stream && socketRef.current) {
-      const audioTrack = stream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.onended = () => {
-          console.log('Audio track ended');
-        };
+  const handleMicToggle = () => setIsMicOn((prev) => !prev);
+  const handleCameraToggle = () => setIsCameraOn((prev) => !prev);
 
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0 && socketRef.current) {
-            socketRef.current.emit('audio', event.data);
-          }
-        };
-        mediaRecorder.start(1000); // Send data every second
-
-        return () => {
-          mediaRecorder.stop();
-        };
-      }
+  const handleCallToggle = () => {
+    setIsMicOn(false);
+    setIsCameraOn(false);
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
     }
-  }, [stream]);
-
-  const handleMicToggle = () => setIsMicOn(!isMicOn);
-  const handleCameraToggle = () => setIsCameraOn(!isCameraOn);
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+    }
+  };
 
   return (
     <>
@@ -199,16 +201,7 @@ const MeetingDashboard: React.FC = () => {
             <div className="mt-4">
               {isCameraOn || isMicOn ? (
                 <button
-                  onClick={() => {
-                    setIsMicOn(false);
-                    setIsCameraOn(false);
-                    if (stream) {
-                      stream.getTracks().forEach((track) => track.stop());
-                    }
-                    if (mediaRecorderRef.current) {
-                      mediaRecorderRef.current.stop();
-                    }
-                  }}
+                  onClick={handleCallToggle}
                   className="p-3 bg-red-500 hover:bg-red-700 text-white rounded-full"
                 >
                   <IoCallSharp className="text-white" />
