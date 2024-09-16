@@ -7,26 +7,28 @@ import {
   IoCall,
   IoCallSharp,
 } from "react-icons/io5";
+import { io } from "socket.io-client";
 import { jwtDecode } from "jwt-decode";
 import Nav from "../../models/nav";
-import RulesAndRegulations from "../../models/RulesAndRegulations";
 
 const MeetingDashboard: React.FC = () => {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(true); // For modal visibility
+  const [transcribedText, setTranscribedText] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const socketRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   // Function to decode JWT and extract user information
   const getUserFromToken = () => {
-    const token = localStorage.getItem("token"); // Adjust the key if it's different
+    const token = localStorage.getItem("token");
     if (!token) return null;
 
     try {
       const decoded: any = jwtDecode(token);
       return {
-        name: decoded.name, // Adjust these fields based on your token's structure
+        name: decoded.name,
         email: decoded.email,
       };
     } catch (error) {
@@ -34,6 +36,27 @@ const MeetingDashboard: React.FC = () => {
       return null;
     }
   };
+
+  useEffect(() => {
+    // Initialize WebSocket connection
+    socketRef.current = io("http://localhost:5000");
+
+    socketRef.current.on("connect", () => {
+      console.log("Connected to WebSocket server");
+    });
+
+    socketRef.current.on("disconnect", () => {
+      console.log("Disconnected from WebSocket server");
+    });
+
+    socketRef.current.on("transcription", (text: string) => {
+      setTranscribedText(text);
+    });
+
+    return () => {
+      socketRef.current.disconnect(); // Cleanup on unmount
+    };
+  }, []);
 
   useEffect(() => {
     const startMediaStream = async () => {
@@ -48,6 +71,20 @@ const MeetingDashboard: React.FC = () => {
           videoRef.current.play();
         }
         console.log("Media stream started");
+
+        // Start recording if microphone is on
+        if (isMicOn) {
+          const mediaRecorder = new MediaRecorder(userStream);
+          mediaRecorderRef.current = mediaRecorder;
+
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0 && socketRef.current) {
+              socketRef.current.emit("audio", event.data);
+            }
+          };
+
+          mediaRecorder.start(10000); // Send data every 10 seconds
+        }
       } catch (error) {
         console.error("Error accessing media devices:", error);
       }
@@ -65,34 +102,23 @@ const MeetingDashboard: React.FC = () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+      }
     };
   }, [isCameraOn, isMicOn]);
 
   const handleMicToggle = () => setIsMicOn(!isMicOn);
   const handleCameraToggle = () => setIsCameraOn(!isCameraOn);
 
-  // Handle modal close and file upload
-  const handleFileUpload = (file: File | null) => {
-    // Handle file upload logic here
-    console.log("Uploaded file:", file);
-    // You can add further handling or state updates as needed
-  };
-
   return (
     <>
       <Nav />
       <div className="min-h-screen bg-gray-100 p-8 dark:bg-gray-900 text-gray-900 dark:text-white">
-        <RulesAndRegulations
-          isModalOpen={isModalOpen}
-          setIsModalOpen={setIsModalOpen}
-          onFileUpload={handleFileUpload} // Pass the callback function
-        />
-
-        <div className="max-w-screen-xl mx-auto  p-8 rounded-lg shadow-lg bg-white dark:bg-gray-800">
+        <div className="max-w-screen-xl mx-auto p-8 rounded-lg shadow-lg bg-white dark:bg-gray-800">
           {/* Video Feed Area */}
           <div className="flex flex-col mt-10 items-center">
             <div className="relative w-full md:w-3/5 h-80 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
-              {/* Video feed */}
               <video
                 ref={videoRef}
                 autoPlay
@@ -150,20 +176,41 @@ const MeetingDashboard: React.FC = () => {
             <div className="mt-4">
               {isCameraOn || isMicOn ? (
                 <button
-                  onClick={() => setStream(null)}
+                  onClick={() => {
+                    setIsMicOn(false);
+                    setIsCameraOn(false);
+                    if (stream) {
+                      stream.getTracks().forEach((track) => track.stop());
+                    }
+                    if (mediaRecorderRef.current) {
+                      mediaRecorderRef.current.stop();
+                    }
+                  }}
                   className="p-3 bg-red-500 hover:bg-red-700 text-white rounded-full"
                 >
                   <IoCallSharp className="text-white" />
                 </button>
               ) : (
                 <button
-                  onClick={() => setStream(null)}
+                  onClick={() => {
+                    setIsMicOn(true);
+                    setIsCameraOn(true);
+                  }}
                   className="p-3 bg-green-500 hover:bg-green-700 text-white rounded-full"
                 >
                   <IoCall className="text-white" />
                 </button>
               )}
             </div>
+
+            {/* Transcribed Text */}
+            {transcribedText && (
+              <div className="mt-4 p-4 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                <p className="text-gray-800 dark:text-gray-200">
+                  {transcribedText}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
