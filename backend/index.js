@@ -4,15 +4,15 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const socketIo = require('socket.io');
-const { execFile } = require('child_process');
-const fs = require('fs');
+const { PassThrough } = require('stream');
+const speech = require('@google-cloud/speech');
 require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:5173", // Your frontend URL
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true
@@ -20,7 +20,7 @@ const io = socketIo(server, {
 });
 
 app.use(cors({
-  origin: "http://localhost:5173", // Your frontend URL
+  origin: "http://localhost:5173",
   methods: ["GET", "POST", "PUT"],
   credentials: true
 }));
@@ -43,65 +43,45 @@ app.use('/admin/meetings', adminmeetingRoutes);
 const usermeetingRoutes = require('./routes/user_meeting');
 app.use('/user/meetings', usermeetingRoutes);
 
-const uploadPdfRoute = require('./routes/resume'); // Adjust path as needed
-app.use('/api', uploadPdfRoute);
+// Google Cloud Speech-to-Text client
+const client = new speech.SpeechClient();
 
-// MongoDB Schema
-const Transcription = mongoose.model('Transcription', new mongoose.Schema({
-  text: String,
-  timestamp: { type: Date, default: Date.now }
-}));
-
-// Function to call Whisper Python script
-function transcribeAudio(audioFilePath, callback) {
-  execFile('python3', ['./whisper_transcribe.py', audioFilePath], (error, stdout, stderr) => {
-    if (error) {
-      console.error(`execFile error: ${error}`);
-      return callback(error, null);
-    }
-    console.log(`Whisper Transcription: ${stdout}`);
-    callback(null, stdout);
-  });
-}
-
-// Socket.io connection
 io.on('connection', (socket) => {
   console.log('New WebSocket connection');
 
-  socket.on('audio', (audioChunk) => {
-    console.log('Received audio track');
-    
-    // Save audioChunk to a temporary file
-    const filePath = `./uploads/audio_${Date.now()}.wav`;
-    fs.writeFileSync(filePath, audioChunk);
+  const passThroughStream = new PassThrough();
+  
+  // Google Cloud Speech-to-Text streaming request
+  const request = {
+    config: {
+      encoding: 'LINEAR16', // Ensure this matches the audio encoding
+      sampleRateHertz: 16000, // Ensure this matches the audio sample rate
+      languageCode: 'en-US',
+    },
+    interimResults: false, // Set to true if you want interim results
+  };
 
-    // Call the Whisper transcription function
-    transcribeAudio(filePath, (err, transcription) => {
-      if (err) {
-        console.error('Transcription error:', err);
-        return;
-      }
-
-      // Save transcription to MongoDB
-      const newTranscription = new Transcription({ text: transcription });
-      newTranscription.save()
-        .then(() => console.log('Transcription saved to MongoDB'))
-        .catch(err => console.error('Error saving transcription:', err));
-
-      // Clean up the temporary file
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error('Error deleting temporary file:', err);
-        }
-      });
-
-      // Send transcription result back to client
+  const recognizeStream = client.streamingRecognize(request)
+    .on('data', (data) => {
+      const transcription = data.results[0]?.alternatives[0]?.transcript || '';
+      console.log('Transcription:', transcription);
       socket.emit('transcription', transcription);
+    })
+    .on('error', (error) => {
+      console.error('Error:', error);
     });
+
+  passThroughStream.pipe(recognizeStream);
+
+  socket.on('audio', (data) => {
+    if (data) {
+      passThroughStream.write(data);
+    }
   });
 
   socket.on('disconnect', () => {
-    console.log('WebSocket disconnected');
+    console.log('Client disconnected');
+    passThroughStream.end();
   });
 });
 
