@@ -45,24 +45,6 @@ const uploadPdfRoute = require('./routes/resume'); // Adjust path as needed
 app.use('/api', uploadPdfRoute);
 
 
-// Socket.io connection
-io.on('connection', (socket) => {
-  console.log('New WebSocket connection');
-
-  socket.on('video', (track) => {
-    console.log('Received video track');
-    // Handle video track data
-  });
-
-  socket.on('audio', (track) => {
-    console.log('Received audio track');
-    // Handle audio track data
-  });
-
-  socket.on('disconnect', () => {
-    console.log('WebSocket disconnected');
-  });
-});
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
