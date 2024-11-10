@@ -1,6 +1,10 @@
 {
   "dependencies": {
     "child_process": "^1.0.2",
+    "jwt-decode": "^4.0.0",
     "react-google-login": "^5.2.2"
+  },
+  "devDependencies": {
+    "@types/jwt-decode": "^2.2.1"
   }
 }
