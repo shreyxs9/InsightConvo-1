@@ -1,50 +1,52 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const http = require('http');
-const socketIo = require('socket.io');
-require('dotenv').config();
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
+// Import Routes
+const authRoutes = require("./routes/auth");
+const adminMeetingRoutes = require("./routes/admin_meeting");
+const userMeetingRoutes = require("./routes/user_meeting");
+const uploadPdfRoute = require("./routes/resume");
+const transcriptionRoutes = require("./routes/transcription");
+const evaluationRoutes = require("./routes/evaluation");
+
+
+// Initialize Express App
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: "http://localhost:5173", // Your frontend URL
-    methods: ["GET", "POST"],
-    allowedHeaders: ["my-custom-header"],
-    credentials: true
-  }
-});
 
+// Middleware
 app.use(cors({
-  origin: "http://localhost:5173", // Your frontend URL
-  methods: ["GET", "POST"],
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
 
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/admin/meetings", adminMeetingRoutes);
+app.use("/user/meetings", userMeetingRoutes);
+app.use("/api", uploadPdfRoute);
+app.use("/api", transcriptionRoutes);
+app.use("/api/evaluation", evaluationRoutes);
+
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
-// Auth Routes
-const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
+ 
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
+});
 
-// Meeting Routes
-const adminmeetingRoutes = require('./routes/admin_meeting');
-app.use('/admin/meetings', adminmeetingRoutes);
-
-const usermeetingRoutes = require('./routes/user_meeting');
-app.use('/user/meetings', usermeetingRoutes);
-
-const uploadPdfRoute = require('./routes/resume'); // Adjust path as needed
-app.use('/api', uploadPdfRoute);
-
-
-
+// Server Listening on Port
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

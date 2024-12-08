@@ -5,7 +5,9 @@ import Login from "./components/login";
 import Signup from "./components/signup";
 import UserHome from "./components/user/user_home";
 import Profile from "./components/user/Profile";
-import MeetingDashboard from "./components/user/meeting";
+import Interview from "./components/user/Meeting";
+import AdminPanel from "./components/admin/AdminPanel";
+
 
 const ProtectedRoute: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -53,13 +55,15 @@ const ProtectedRoute: React.FC = () => {
 };
 
 function App() {
+ 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<ProtectedRoute />} />
         <Route path="/user/profile" element={<Profile />} />
         <Route path="/user" element={<UserHome />} />
-        <Route path="/user/meeting/:meetingId" element={<MeetingDashboard />} />
+        <Route path="/admin/meeting/:meetingId" element={<AdminPanel  />} />
+        <Route path="/user/meeting/:meetingId" element={<Interview />} />
         <Route path="/admin" element={<AdminHome />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />

@@ -1,174 +1,162 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  IoMic,
-  IoMicOff,
-  IoVideocam,
-  IoVideocamOff,
-  IoCall,
-  IoCallSharp,
-} from "react-icons/io5";
-import { jwtDecode } from "jwt-decode";
-import Nav from "../../models/nav";
+import React, { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
+import axios from "axios";
 import RulesAndRegulations from "../../models/RulesAndRegulations";
 
-const MeetingDashboard: React.FC = () => {
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isCameraOn, setIsCameraOn] = useState(true);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(true); // For modal visibility
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+const MAX_QUESTIONS = 10;
 
-  // Function to decode JWT and extract user information
-  const getUserFromToken = () => {
-    const token = localStorage.getItem("token"); // Adjust the key if it's different
-    if (!token) return null;
+const Interview: React.FC = () => {
+  const { meetingId } = useParams<{ meetingId: string }>();
+  const [isRecording, setIsRecording] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState(
+    "Tell me about yourself and your background."
+  );
+  const [transcription, setTranscription] = useState<string | null>(null);
+  const [questionCount, setQuestionCount] = useState(1);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(true);
 
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+
+  // Start the local video stream
+  useEffect(() => {
+    const startLocalVideo = async () => {
+      try {
+        const localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        localStreamRef.current = localStream;
+
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStream;
+        }
+      } catch (error) {
+        console.error("Error accessing local video:", error);
+      }
+    };
+
+    startLocalVideo();
+
+    return () => {
+      // Cleanup local stream when component unmounts
+      localStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  // Start recording (audio)
+  const startRecording = async () => {
     try {
-      const decoded: any = jwtDecode(token);
-      return {
-        name: decoded.name, // Adjust these fields based on your token's structure
-        email: decoded.email,
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
       };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        audioChunksRef.current = [];
+        await sendToTranscriptionService(audioBlob);
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
     } catch (error) {
-      console.error("Failed to decode token:", error);
-      return null;
+      console.error("Error starting recording:", error);
     }
   };
 
-  useEffect(() => {
-    const startMediaStream = async () => {
-      try {
-        const userStream = await navigator.mediaDevices.getUserMedia({
-          video: isCameraOn,
-          audio: isMicOn,
-        });
-        setStream(userStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = userStream;
-          videoRef.current.play();
-        }
-        console.log("Media stream started");
-      } catch (error) {
-        console.error("Error accessing media devices:", error);
-      }
-    };
-
-    if (isCameraOn || isMicOn) {
-      startMediaStream();
-    } else {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+  // Stop recording (audio)
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
+  };
 
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+  // Send audio to transcription service
+  const sendToTranscriptionService = async (audioBlob: Blob) => {
+    const formData = new FormData();
+    formData.append("file", audioBlob);
+
+    try {
+      const response = await axios.post(
+        `http://localhost:5000/api/transcribe/${meetingId}`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      setTranscription(response.data.transcription);
+
+      if (response.data.questions && response.data.questions.length > 0) {
+        const nextQuestion = response.data.questions[0];
+        setCurrentQuestion(nextQuestion);
+        setQuestionCount((prevCount) => prevCount + 1);
       }
-    };
-  }, [isCameraOn, isMicOn]);
-
-  const handleMicToggle = () => setIsMicOn(!isMicOn);
-  const handleCameraToggle = () => setIsCameraOn(!isCameraOn);
-
-  // Handle modal close and file upload
-  const handleFileUpload = (file: File | null) => {
-    // Handle file upload logic here
-    console.log("Uploaded file:", file);
-    // You can add further handling or state updates as needed
+    } catch (error) {
+      console.error("Error transcribing audio:", error);
+    }
   };
 
   return (
-    <>
-      <Nav />
-      <div className="min-h-screen bg-gray-100 p-8 dark:bg-gray-900 text-gray-900 dark:text-white">
+    <div>
+      {isModalOpen && (
         <RulesAndRegulations
           isModalOpen={isModalOpen}
           setIsModalOpen={setIsModalOpen}
-          onFileUpload={handleFileUpload} // Pass the callback function
+          onFileUpload={setResumeFile}
         />
-
-        <div className="max-w-screen-xl mx-auto  p-8 rounded-lg shadow-lg bg-white dark:bg-gray-800">
-          {/* Video Feed Area */}
-          <div className="flex flex-col mt-10 items-center">
-            <div className="relative w-full md:w-3/5 h-80 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
-              {/* Video feed */}
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                {!stream && (
-                  <p className="text-gray-500 dark:text-gray-300">
-                    Your Video Feed
-                  </p>
-                )}
-              </div>
+      )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="relative">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              muted
+              className="w-full rounded-xl"
+            ></video>
+            <div className="absolute bottom-4 left-4 flex space-x-4">
+              <button
+                onClick={startRecording}
+                className="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-400 text-white transition disabled:bg-gray-500"
+                disabled={isRecording || questionCount >= MAX_QUESTIONS}
+              >
+                Start Recording
+              </button>
+              <button
+                onClick={stopRecording}
+                className="px-6 py-3 rounded-full bg-red-500 hover:bg-red-400 text-white transition disabled:bg-gray-500"
+                disabled={!isRecording || questionCount >= MAX_QUESTIONS}
+              >
+                Stop Recording
+              </button>
             </div>
           </div>
-
-          {/* Controls */}
-          <div className="mt-6 flex flex-col items-center space-y-4">
-            <div className="flex space-x-4">
-              {/* Microphone Toggle */}
-              <button
-                onClick={handleMicToggle}
-                className={`p-3 rounded-full ${
-                  isMicOn
-                    ? "bg-blue-500 hover:bg-blue-700"
-                    : "bg-gray-500 hover:bg-gray-700"
-                }`}
-              >
-                {isMicOn ? (
-                  <IoMic className="text-white" />
-                ) : (
-                  <IoMicOff className="text-white" />
-                )}
-              </button>
-
-              {/* Camera Toggle */}
-              <button
-                onClick={handleCameraToggle}
-                className={`p-3 rounded-full ${
-                  isCameraOn
-                    ? "bg-blue-500 hover:bg-blue-700"
-                    : "bg-gray-500 hover:bg-gray-700"
-                }`}
-              >
-                {isCameraOn ? (
-                  <IoVideocam className="text-white" />
-                ) : (
-                  <IoVideocamOff className="text-white" />
-                )}
-              </button>
+          <div>
+            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+              <h2 className="text-xl font-semibold mb-4">Current Question</h2>
+              <p className="text-lg text-gray-300 mb-4">{currentQuestion}</p>
+              <p className="text-sm text-gray-500">
+                Question {questionCount} of {MAX_QUESTIONS}
+              </p>
             </div>
-
-            {/* Meeting Action Button */}
-            <div className="mt-4">
-              {isCameraOn || isMicOn ? (
-                <button
-                  onClick={() => setStream(null)}
-                  className="p-3 bg-red-500 hover:bg-red-700 text-white rounded-full"
-                >
-                  <IoCallSharp className="text-white" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => setStream(null)}
-                  className="p-3 bg-green-500 hover:bg-green-700 text-white rounded-full"
-                >
-                  <IoCall className="text-white" />
-                </button>
-              )}
+            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 mt-6">
+              <h2 className="text-xl font-semibold mb-4">Transcription</h2>
+              <p className="text-lg text-gray-300">
+                {transcription || "Waiting for transcription..."}
+              </p>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
-export default MeetingDashboard;
+export default Interview;

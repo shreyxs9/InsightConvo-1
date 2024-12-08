@@ -3,7 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
-const Meeting = require('../models/meeting');
+const Meeting = require('../models/Meeting');
 
 const jwtSecret = process.env.JWT_SECRET;
 
