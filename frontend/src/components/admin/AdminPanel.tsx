@@ -1,103 +1,124 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import io, { Socket } from "socket.io-client";
-import 'webrtc-adapter';
+import axios from "axios";
 
-const AdminPanel: React.FC = () => {
-  const { meetingId } = useParams<{ meetingId: string }>();
-  const [error, setError] = useState<string | null>(null);
-  
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
-  const socketRef = useRef<Socket | null>(null);
+const AdminPanel = () => {
+  const { meetingId } = useParams(); // Extract meetingId from URL
+  const [userDetails, setUserDetails] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(false);
+  const [loadingEvaluation, setLoadingEvaluation] = useState(false);
+  const [evaluationResult, setEvaluationResult] = useState(null);
+  const [error, setError] = useState(null);
 
+  // Fetch user details based on meetingId
   useEffect(() => {
-    const socket = io('http://localhost:5000');
-    socketRef.current = socket;
+    const fetchUserDetails = async () => {
+      setLoadingUser(true);
+      setError(null);
 
-    socket.emit('join-room', { roomId: meetingId, role: 'admin' });
-
-    setupWebRTC();
-
-    return () => {
-      peerConnectionRef.current?.close();
-      socket.disconnect();
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/api/meeting-details/${meetingId}`
+        );
+        setUserDetails(response.data.user);
+      } catch (err) {
+        setError("Failed to fetch user details. Please try again.");
+      } finally {
+        setLoadingUser(false);
+      }
     };
+
+    if (meetingId) fetchUserDetails();
   }, [meetingId]);
 
-  const setupWebRTC = async () => {
+  const evaluateCandidate = async () => {
+    setLoadingEvaluation(true);
+    setError(null);
+    setEvaluationResult(null);
+
     try {
-      // Create and configure peer connection
-      const peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' }
-        ]
-      });
-      peerConnectionRef.current = peerConnection;
-
-      // Handle incoming tracks
-      peerConnection.ontrack = (event) => {
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
-      };
-
-      // Handle ICE candidates
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          socketRef.current?.emit('ice-candidate', {
-            roomId: meetingId,
-            candidate: event.candidate
-          });
-        }
-      };
-
-      // Listen for signaling events
-      socketRef.current?.on('user-joined', ({ role }) => {
-        if (role === 'candidate') {
-          socketRef.current?.emit('request-offer', { roomId: meetingId });
-        }
-      });
-
-      socketRef.current?.on('receive-offer', async ({ offer }) => {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        socketRef.current?.emit('send-answer', {
-          roomId: meetingId,
-          answer
-        });
-      });
-
-      socketRef.current?.on('receive-ice-candidate', async ({ candidate }) => {
-        try {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (error) {
-          console.error('Error adding ICE candidate:', error);
-        }
-      });
-
-    } catch (error) {
-      console.error('Error setting up WebRTC:', error);
-      setError('Failed to set up video connection');
+      const response = await axios.get(
+        `http://localhost:5000/api/evaluate-candidate/${meetingId}`,
+      );
+      setEvaluationResult(response.data);
+    } catch (err) {
+      setError("Failed to fetch evaluation. Please try again.");
+    } finally {
+      setLoadingEvaluation(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold mb-6">Interview Session</h1>
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-      <div className="bg-gray-800 rounded-xl overflow-hidden">
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          playsInline
-          className="w-full h-auto"
-        />
+    <div className="bg-gray-100 min-h-screen py-10 px-5">
+      <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-8">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+          Candidate Evaluation
+        </h1>
+
+        {loadingUser ? (
+          <p className="text-blue-500 text-center">Fetching user details...</p>
+        ) : error ? (
+          <p className="text-red-500 text-center">{error}</p>
+        ) : userDetails ? (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-gray-700 mb-4">
+              User Details
+            </h2>
+            <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+              <p className="text-lg">
+                <span className="font-semibold">Name:</span> {userDetails.name}
+              </p>
+              <p className="text-lg mt-4">
+                <span className="font-semibold">Email:</span>{" "}
+                {userDetails.email}
+              </p>
+              <p className="text-lg mt-4">
+                <span className="font-semibold">User ID:</span>{" "}
+                {userDetails.userId}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center">No user details available.</p>
+        )}
+
+        <button
+          onClick={evaluateCandidate}
+          className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition"
+          disabled={loadingEvaluation || !userDetails}
+        >
+          {loadingEvaluation ? "Evaluating..." : "Evaluate Candidate"}
+        </button>
+
+        {evaluationResult && (
+          <div className="mt-8">
+            <h2 className="text-xl font-bold text-gray-700 mb-4">
+              Evaluation Results
+            </h2>
+            <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+              <p className="text-lg">
+                <span className="font-semibold">Resume Score:</span>{" "}
+                {evaluationResult.resumeScore}/10
+              </p>
+              <p className="text-lg mt-4">
+                <span className="font-semibold">Transcription Score:</span>{" "}
+                {evaluationResult.transcriptionScore}/10
+              </p>
+              <p className="text-lg mt-4">
+                <span className="font-semibold">Overall Score:</span>{" "}
+                {evaluationResult.overallScore.toFixed(1)}/10
+              </p>
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Suggestions</h3>
+                <p className="text-gray-700">
+                  {evaluationResult.suggestions}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && <p className="text-red-500 text-center mt-6">{error}</p>}
       </div>
     </div>
   );

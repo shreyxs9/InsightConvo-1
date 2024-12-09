@@ -11,7 +11,7 @@ const userMeetingRoutes = require("./routes/user_meeting");
 const uploadPdfRoute = require("./routes/resume");
 const transcriptionRoutes = require("./routes/transcription");
 const evaluationRoutes = require("./routes/evaluation");
-
+const userRoutes = require("./routes/userdetails");
 
 // Initialize Express App
 const app = express();
@@ -32,7 +32,8 @@ app.use("/admin/meetings", adminMeetingRoutes);
 app.use("/user/meetings", userMeetingRoutes);
 app.use("/api", uploadPdfRoute);
 app.use("/api", transcriptionRoutes);
-app.use("/api/evaluation", evaluationRoutes);
+app.use("/api", evaluationRoutes);
+app.use("/api", userRoutes);
 
 
 // MongoDB Connection

@@ -31,6 +31,7 @@ router.post("/transcribe/:meetingId", upload.single("file"), async (req, res) =>
     }
     const email = meeting.email;
 
+
     console.log("Meeting found. Email:", email);
 
     // Upload audio file to AssemblyAI
@@ -95,7 +96,7 @@ router.post("/transcribe/:meetingId", upload.single("file"), async (req, res) =>
     }
 
     // Generate follow-up question
-    const followUpQuestions = await generateFollowUpQuestions(transcription);
+    const followUpQuestions = await generateFollowUpQuestions(transcription, meetingId);
     const nextQuestion = followUpQuestions[0];
 
     if (!nextQuestion) {
@@ -127,8 +128,11 @@ router.post("/transcribe/:meetingId", upload.single("file"), async (req, res) =>
 });
 
 // Helper function to generate follow-up questions
-const generateFollowUpQuestions = async (responseText) => {
-  const prompt = `Based on the following response: "${responseText}", generate one follow-up question.`;
+const generateFollowUpQuestions = async (responseText, meetingId) => {
+  const meeting = await Meeting.findById(meetingId);
+  const jobDescription = meeting.jobDescription;
+
+  const prompt = `Based on the following :"${jobDescription}":and "${responseText}", generate one follow-up question related to the job description.`;
   try {
     const result = await model.generateContent(prompt);
     const question = result.response.text();
