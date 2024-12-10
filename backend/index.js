@@ -12,6 +12,7 @@ const uploadPdfRoute = require("./routes/resume");
 const transcriptionRoutes = require("./routes/transcription");
 const evaluationRoutes = require("./routes/evaluation");
 const userRoutes = require("./routes/userdetails");
+// const confidenceRoutes = require("./routes/confidence-check");
 
 // Initialize Express App
 const app = express();
@@ -34,7 +35,7 @@ app.use("/api", uploadPdfRoute);
 app.use("/api", transcriptionRoutes);
 app.use("/api", evaluationRoutes);
 app.use("/api", userRoutes);
-
+// app.use("/api", confidenceRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })

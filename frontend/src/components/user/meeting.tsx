@@ -42,7 +42,6 @@ const Interview: React.FC = () => {
     startLocalVideo();
 
     return () => {
-      // Cleanup local stream when component unmounts
       localStreamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);

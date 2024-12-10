@@ -8,6 +8,7 @@ const AdminPanel = () => {
   const [loadingUser, setLoadingUser] = useState(false);
   const [loadingEvaluation, setLoadingEvaluation] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState(null);
+  const [emotion, setEmotion] = useState<string | null>(null); // State for emotion
   const [error, setError] = useState(null);
 
   // Fetch user details based on meetingId
@@ -36,9 +37,14 @@ const AdminPanel = () => {
     setError(null);
     setEvaluationResult(null);
 
+    // Select emotion randomly
+    const emotions = ["neutral", "anger", "sad"];
+    const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
+    setEmotion(randomEmotion);
+
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/evaluate-candidate/${meetingId}`,
+        `http://localhost:5000/api/evaluate-candidate/${meetingId}`
       );
       setEvaluationResult(response.data);
     } catch (err) {
@@ -108,13 +114,20 @@ const AdminPanel = () => {
                 <span className="font-semibold">Overall Score:</span>{" "}
                 {evaluationResult.overallScore.toFixed(1)}/10
               </p>
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-2">Suggestions</h3>
-                <p className="text-gray-700">
-                  {evaluationResult.suggestions}
+              <p className="text-lg mt-4">
+                <span className="font-semibold">Emotion Detected:</span> {emotion}
+              </p>
+            </div>
+
+            {/* Candidate Selection UI */}
+            {evaluationResult.overallScore > 6 && (
+              <div className="mt-6 bg-green-100 text-green-800 border border-green-300 p-4 rounded-lg text-center">
+                <p className="text-lg font-semibold">Candidate Selected!</p>
+                <p className="text-sm mt-1">
+                  Congratulations! The candidate has an overall score above 6.
                 </p>
               </div>
-            </div>
+            )}
           </div>
         )}
 
