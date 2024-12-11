@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import RulesAndRegulations from "../../models/RulesAndRegulations";
+import { jwtDecode } from "jwt-decode";
 
 const MAX_QUESTIONS = 10;
 
@@ -21,6 +22,22 @@ const Interview: React.FC = () => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
 
+  const getUserFromToken = () => {
+    const token = localStorage.getItem("token"); // Adjust the key if it's different
+    if (!token) return null;
+
+    try {
+      const decoded: any = jwtDecode(token);
+      return {
+        name: decoded.name, // Adjust these fields based on your token's structure
+        email: decoded.email,
+      };
+    } catch (error) {
+      console.error("Failed to decode token:", error);
+      return null;
+    }
+  };
+
   // Start the local video stream
   useEffect(() => {
     const startLocalVideo = async () => {
@@ -34,6 +51,13 @@ const Interview: React.FC = () => {
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = localStream;
         }
+
+        // Start capturing screenshots every 10 seconds
+        const screenshotInterval = setInterval(() => {
+          captureScreenshot();
+        }, 10000);
+
+        return () => clearInterval(screenshotInterval);
       } catch (error) {
         console.error("Error accessing local video:", error);
       }
@@ -46,6 +70,62 @@ const Interview: React.FC = () => {
     };
   }, []);
 
+  // Capture a screenshot from the video stream
+  // Capture a screenshot from the video stream using ImageCapture API
+  // Capture a screenshot using ImageCapture
+  const captureScreenshot = async () => {
+
+    try {
+      if (!localStreamRef.current) {
+        console.error("No video stream available.");
+        return;
+      }
+      // Get the video track from the media stream
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      const imageCapture = new ImageCapture(videoTrack);
+  
+      // Capture the image using grabFrame
+      const imageBitmap = await imageCapture.grabFrame();
+  
+      // Create a canvas to draw the image
+      const canvas = document.createElement("canvas");
+      canvas.width = imageBitmap.width;
+      canvas.height = imageBitmap.height;
+  
+      const context = canvas.getContext("2d");
+      if (context) {
+        const user = getUserFromToken();
+
+        context.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
+  
+        // Convert canvas to a Blob (image file)
+        canvas.toBlob(async (blob) => {
+          const formData = new FormData();
+          formData.append("screenshot", blob, "screenshot.jpg");
+          formData.append("email", user.email);
+  
+          // Send the image file to the backend
+          try {
+            const response = await axios.post("http://localhost:5000/api/confidence", formData, {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            });
+  
+            console.log("Emotion Analysis Result:", response.data);
+          } catch (error) {
+            console.error("Error sending image to emotion detection API:", error);
+          }
+        }, "image/jpeg");
+      }
+    } catch (error) {
+      console.error("Error capturing screenshot:", error);
+    }
+  };
+  
+    
+
+  // Send the screenshot to the emotion detection API
   // Start recording (audio)
   const startRecording = async () => {
     try {

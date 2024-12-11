@@ -3,58 +3,90 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
-const FormData = require("form-data");
-
-const app = express();
+const mongoose = require("mongoose"); // Import mongoose
 const router = express.Router();
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
 
-// Configure Multer for memory storage
-const upload = multer({ storage: multer.memoryStorage() });
+const emotionSchema = new mongoose.Schema({
+  inference_id: String,
+  time: Number,
+  class: String,
+  confidence: Number,
+  email: String, // Add email to schema
+  timestamp: { type: Date, default: Date.now },
+});
 
-// Endpoint to handle screenshots and send them to the Face++ API
+const Emotion = mongoose.model("Emotion", emotionSchema);
+
+// Set up multer to store images in the 'uploads' folder
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir); // Ensure the uploads directory exists
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `image-${Date.now()}.jpg`); // Generate a unique filename for each image
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// Route to handle image upload and external API call
 router.post("/confidence", upload.single("screenshot"), async (req, res) => {
-  const file = req.file;
-
-  if (!file) {
-    return res.status(400).send({ message: "No screenshot uploaded" });
+  const { email } = req.body;
+  if (!req.file) {
+    return res.status(400).send({ error: "No file uploaded" });
   }
 
-  const outputPath = path.join(uploadsDir, `${Date.now()}.jpg`);
+  // File uploaded successfully
+  const filePath = path.join(__dirname, "uploads", req.file.filename);
+  console.log("Image saved at:", filePath);
+
   try {
-    // Save the file buffer to the uploads directory
-    fs.writeFileSync(outputPath, file.buffer);
+    // Read the image file and encode it as base64
+    const imageBase64 = fs.readFileSync(filePath, { encoding: "base64" });
 
-    console.log(`Screenshot saved: ${outputPath}`);
-
-    // Prepare form data to send to Face++ API
-    const formData = new FormData();
-    formData.append("api_key", "o5CnEnJI66q1VkCLwXpe_puZtCvE5xK"); // Replace with your actual Face++ API key
-    formData.append("api_secret", "GZG1tNE50VSznFQgrZh1tGpfryorTpuQ"); // Replace with your actual Face++ API secret
-    formData.append("image_file", fs.createReadStream(outputPath));
-
-    // Send the image to the Face++ API
-    const options = {
+    // Send the image to the external emotion detection API
+    const response = await axios({
       method: "POST",
-      url: "https://api-us.faceplusplus.com/facepp/v3/detect",
-      headers: {
-        ...formData.getHeaders(),
+      url: "https://detect.roboflow.com/facial-emotion-recognition/2",
+      params: {
+        api_key: "VwQnKGgYfDKsvyJnFkdX", // Replace with your actual API key
       },
-      data: formData,
-    };
+      data: imageBase64,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
 
-    const response = await axios.request(options);
+    console.log("Emotion Analysis Result:", response.data);
+
+    // Extract predictions and store in MongoDB
+    const predictions = response.data.predictions || [];
+
+    for (const prediction of predictions) {
+      const emotion = new Emotion({
+        inference_id: response.data.inference_id,
+        time: response.data.time,
+        class: prediction.class,
+        confidence: prediction.confidence,
+        email: email, // Save email with the prediction
+      });
+
+      await emotion.save(); // Save to MongoDB
+    }
 
     // Respond with the analysis result
-    res.status(200).send({ message: "Screenshot received", analysis: response.data });
+    res.send({
+      message: "Image uploaded and analyzed successfully",
+      analysis: response.data,
+    });
   } catch (error) {
-    console.error("Error handling screenshot or sending to API:", error);
-    res.status(500).send({ message: "Failed to process screenshot", error: error.message });
+    console.error("Error processing image:", error.message);
+    res.status(500).send({ error: "Failed to analyze image", details: error.message });
   }
 });
 

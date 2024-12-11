@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const bodyParser = require("body-parser");
+
 
 // Import Routes
 const authRoutes = require("./routes/auth");
@@ -12,11 +14,13 @@ const uploadPdfRoute = require("./routes/resume");
 const transcriptionRoutes = require("./routes/transcription");
 const evaluationRoutes = require("./routes/evaluation");
 const userRoutes = require("./routes/userdetails");
-// const confidenceRoutes = require("./routes/confidence-check");
+const confidenceRoutes = require("./routes/confidence-check");
 
 // Initialize Express App
 const app = express();
 
+app.use(bodyParser.json({ limit: "50mb" })); // Increase limit to 50 MB
+app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -35,7 +39,7 @@ app.use("/api", uploadPdfRoute);
 app.use("/api", transcriptionRoutes);
 app.use("/api", evaluationRoutes);
 app.use("/api", userRoutes);
-// app.use("/api", confidenceRoutes);
+app.use("/api", confidenceRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
