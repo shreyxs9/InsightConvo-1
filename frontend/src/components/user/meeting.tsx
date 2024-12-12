@@ -23,13 +23,13 @@ const Interview: React.FC = () => {
   const localStreamRef = useRef<MediaStream | null>(null);
 
   const getUserFromToken = () => {
-    const token = localStorage.getItem("token"); // Adjust the key if it's different
+    const token = localStorage.getItem("token");
     if (!token) return null;
 
     try {
       const decoded: any = jwtDecode(token);
       return {
-        name: decoded.name, // Adjust these fields based on your token's structure
+        name: decoded.name,
         email: decoded.email,
       };
     } catch (error) {
@@ -38,7 +38,6 @@ const Interview: React.FC = () => {
     }
   };
 
-  // Start the local video stream
   useEffect(() => {
     const startLocalVideo = async () => {
       try {
@@ -52,7 +51,6 @@ const Interview: React.FC = () => {
           localVideoRef.current.srcObject = localStream;
         }
 
-        // Start capturing screenshots every 10 seconds
         const screenshotInterval = setInterval(() => {
           captureScreenshot();
         }, 10000);
@@ -70,24 +68,17 @@ const Interview: React.FC = () => {
     };
   }, []);
 
-  // Capture a screenshot from the video stream
-  // Capture a screenshot from the video stream using ImageCapture API
-  // Capture a screenshot using ImageCapture
   const captureScreenshot = async () => {
-
     try {
       if (!localStreamRef.current) {
         console.error("No video stream available.");
         return;
       }
-      // Get the video track from the media stream
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
       const imageCapture = new ImageCapture(videoTrack);
   
-      // Capture the image using grabFrame
       const imageBitmap = await imageCapture.grabFrame();
   
-      // Create a canvas to draw the image
       const canvas = document.createElement("canvas");
       canvas.width = imageBitmap.width;
       canvas.height = imageBitmap.height;
@@ -98,13 +89,11 @@ const Interview: React.FC = () => {
 
         context.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
   
-        // Convert canvas to a Blob (image file)
         canvas.toBlob(async (blob) => {
           const formData = new FormData();
           formData.append("screenshot", blob, "screenshot.jpg");
           formData.append("email", user.email);
   
-          // Send the image file to the backend
           try {
             const response = await axios.post("http://localhost:5000/api/confidence", formData, {
               headers: {
@@ -122,11 +111,7 @@ const Interview: React.FC = () => {
       console.error("Error capturing screenshot:", error);
     }
   };
-  
-    
 
-  // Send the screenshot to the emotion detection API
-  // Start recording (audio)
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -150,7 +135,6 @@ const Interview: React.FC = () => {
     }
   };
 
-  // Stop recording (audio)
   const stopRecording = () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
@@ -158,7 +142,6 @@ const Interview: React.FC = () => {
     }
   };
 
-  // Send audio to transcription service
   const sendToTranscriptionService = async (audioBlob: Blob) => {
     const formData = new FormData();
     formData.append("file", audioBlob);
@@ -183,7 +166,7 @@ const Interview: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
       {isModalOpen && (
         <RulesAndRegulations
           isModalOpen={isModalOpen}
@@ -191,44 +174,69 @@ const Interview: React.FC = () => {
           onFileUpload={setResumeFile}
         />
       )}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="relative">
+          {/* Video Section */}
+          <div className="relative bg-white dark:bg-gray-700 rounded-2xl shadow-xl overflow-hidden">
             <video
               ref={localVideoRef}
               autoPlay
               muted
-              className="w-full rounded-xl"
+              className="w-full h-full object-cover"
             ></video>
-            <div className="absolute bottom-4 left-4 flex space-x-4">
+            <div className="absolute bottom-6 left-6 right-6 flex justify-center space-x-4">
               <button
                 onClick={startRecording}
-                className="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-400 text-white transition disabled:bg-gray-500"
+                className="px-6 py-3 rounded-full 
+                  bg-blue-600 hover:bg-blue-700 
+                  text-white font-semibold 
+                  transition duration-300 
+                  disabled:bg-gray-400 disabled:cursor-not-allowed
+                  shadow-md hover:shadow-lg"
                 disabled={isRecording || questionCount >= MAX_QUESTIONS}
               >
                 Start Recording
               </button>
               <button
                 onClick={stopRecording}
-                className="px-6 py-3 rounded-full bg-red-500 hover:bg-red-400 text-white transition disabled:bg-gray-500"
+                className="px-6 py-3 rounded-full 
+                  bg-red-600 hover:bg-red-700 
+                  text-white font-semibold 
+                  transition duration-300 
+                  disabled:bg-gray-400 disabled:cursor-not-allowed
+                  shadow-md hover:shadow-lg"
                 disabled={!isRecording || questionCount >= MAX_QUESTIONS}
               >
                 Stop Recording
               </button>
             </div>
           </div>
-          <div>
-            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-              <h2 className="text-xl font-semibold mb-4">Current Question</h2>
-              <p className="text-lg text-gray-300 mb-4">{currentQuestion}</p>
-              <p className="text-sm text-gray-500">
-                Question {questionCount} of {MAX_QUESTIONS}
+
+          {/* Information Section */}
+          <div className="space-y-6">
+            {/* Current Question Card */}
+            <div className="bg-white dark:bg-gray-700 rounded-2xl p-6 shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  Current Question
+                </h2>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Question {questionCount} of {MAX_QUESTIONS}
+                </span>
+              </div>
+              <p className="text-lg text-gray-700 dark:text-gray-300">
+                {currentQuestion}
               </p>
             </div>
-            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 mt-6">
-              <h2 className="text-xl font-semibold mb-4">Transcription</h2>
-              <p className="text-lg text-gray-300">
-                {transcription || "Waiting for transcription..."}
+
+            {/* Transcription Card */}
+            <div className="bg-white dark:bg-gray-700 rounded-2xl p-6 shadow-lg">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+                Transcription
+              </h2>
+              <p className="text-base text-gray-700 dark:text-gray-300 
+                min-h-[100px] italic">
+                {transcription || "Waiting for your response..."}
               </p>
             </div>
           </div>

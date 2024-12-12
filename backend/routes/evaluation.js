@@ -3,6 +3,7 @@ const router = express.Router();
 const Meeting = require("../models/Meeting");
 const Resume = require("../models/Resume");
 const Transcription = require("../models/Transcript");
+const Emotion = require("../models/Emotion");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Gemini AI Setup
@@ -27,16 +28,21 @@ router.get("/evaluate-candidate/:meetingId", async (req, res) => {
 
     const resume = await Resume.findOne({ email });
     const transcriptions = await Transcription.find({ email });
-  
-    
-    if (!meeting || !resume || transcriptions.length === 0) {
+    const emotions = await Emotion.find({ email });
+
+    if (!meeting || !resume || transcriptions.length === 0 || emotions.length === 0) {
       return res.status(404).json({ error: "Required data not found" });
     }
 
     const jobDescription = meeting.jobDescription;
     const resumeContent = resume.content;
     const transcriptionTexts = transcriptions.map((t) => t.transcriptionText).join("\n");
-    console.log(transcriptionTexts);
+
+    // Extract Confidence and Overall Emotion
+    const confidenceScores = emotions.map((e) => e.confidence * 10);
+    const averageConfidence = 
+      confidenceScores.reduce((sum, value) => sum + value, 0) / confidenceScores.length;
+    const overallEmotion = emotions[emotions.length - 1].class;
 
     // 1. Resume and Job Description Matching Score
     const resumePrompt = `
@@ -44,40 +50,56 @@ router.get("/evaluate-candidate/:meetingId", async (req, res) => {
     1. Evaluate how well the candidate's skills, experiences, and qualifications align with the requirements of the job.
     2. Consider factors such as technical skills, soft skills, relevant experiences, certifications, and overall compatibility with the role.
     3. Assign a score out of 10, where 10 indicates a perfect match.
-    
+
     Resume:
     ${resumeContent}
-    
+
     Job Description:
     ${jobDescription}
     `;
-        const resumeScore = await getGeminiScore(resumePrompt);
+    const resumeScore = await getGeminiScore(resumePrompt);
 
     // 2. Transcriptions and Follow-up Questions Matching Score
     const transcriptionPrompt = `
-Evaluate the following transcriptions by comparing the questions asked with the provided answers:
-1. Assess the relevance and correctness of the answers in relation to the questions.
-2. Consider the clarity, completeness, and depth of the answers.
-3. Provide a score out of 10, where 10 indicates a perfect match between questions and answers.
+    Evaluate the following transcriptions by comparing the questions asked with the provided answers:
+    1. Assess the relevance and correctness of the answers in relation to the questions.
+    2. Consider the clarity, completeness, and depth of the answers.
+    3. Provide a score out of 10, where 10 indicates a perfect match between questions and answers.
 
-Transcriptions:
-${transcriptionTexts}
-`;
-
+    Transcriptions:
+    ${transcriptionTexts}
+    `;
     const transcriptionScore = await getGeminiScore(transcriptionPrompt);
 
-    // 3. Overall Score Calculation
-    const overallScore = (resumeScore * 0.6) + (transcriptionScore * 0.4);
+    // 3. Overall Confidence Trend Analysis
+    const confidencePrompt = `
+    Analyze the following confidence scores of a candidate during the interview:
+    1. Identify any trends or patterns in the confidence levels.
+    2. Provide a summary of the candidate's confidence levels and whether they show improvement, decline, or consistency.
+    3. Based on this analysis, decide if the candidate's confidence is sufficient for the role.
+    in few sentences
 
-    // 4. Suggestions for Similar Roles
-    const suggestionPrompt = `Based on this job description:\n${jobDescription}\nSuggest similar roles for the candidate.`;
-    const suggestions = await model.generateContent(suggestionPrompt);
+    Confidence Scores:
+    ${confidenceScores.join(", ")}
+    `;
+    const confidenceAnalysis = await model.generateContent(confidencePrompt);
+    console.log(confidenceAnalysis);
 
+    // 4. Overall Score Calculation
+    const overallScore = (resumeScore * 0.5) + (transcriptionScore * 0.3) + (averageConfidence * 0.2);
+
+    // Determine Candidate Status
+    const candidateStatus = overallScore > 7 ? "Selected" : "Rejected";
+
+    // Response
     res.json({
       resumeScore,
       transcriptionScore,
+      confidence: averageConfidence,
+      overallEmotion,
       overallScore,
-      suggestions: suggestions.response.text(),
+      candidateStatus,
+      confidenceAnalysis: confidenceAnalysis.response.text(),
     });
   } catch (error) {
     console.error("Error:", error);

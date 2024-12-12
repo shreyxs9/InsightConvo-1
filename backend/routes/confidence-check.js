@@ -5,18 +5,10 @@ const fs = require("fs");
 const axios = require("axios");
 const mongoose = require("mongoose"); // Import mongoose
 const router = express.Router();
+const Emotion = require("../models/Emotion");
 
 
-const emotionSchema = new mongoose.Schema({
-  inference_id: String,
-  time: Number,
-  class: String,
-  confidence: Number,
-  email: String, // Add email to schema
-  timestamp: { type: Date, default: Date.now },
-});
 
-const Emotion = mongoose.model("Emotion", emotionSchema);
 
 // Set up multer to store images in the 'uploads' folder
 const storage = multer.diskStorage({
