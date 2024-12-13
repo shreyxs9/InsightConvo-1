@@ -18,6 +18,7 @@ interface Meeting {
   time: string;
   email: string;
   isUpcoming: boolean;
+  isAdmin:false;
 }
 
 const UserHome: React.FC = () => {
@@ -93,7 +94,7 @@ const UserHome: React.FC = () => {
           ) : (
             <Archive className="w-6 h-6 mr-3 text-gray-600 dark:text-gray-400" />
           )}
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-100">
             {title}
           </h2>
         </div>
@@ -101,14 +102,16 @@ const UserHome: React.FC = () => {
         {filteredMeetings.length > 0 ? (
           <div className="grid gap-4 p-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {filteredMeetings.map((meeting) => (
-              <MeetingCard
-                key={meeting._id}
-                name={meeting.name}
-                date={meeting.date}
-                time={meeting.time}
-                email={meeting.email}
-                onClick={() => handleCardClick(meeting._id)}
-              />
+           <MeetingCard
+           key={meeting._id}
+           name={meeting.name}
+           date={meeting.date}
+           time={meeting.time}
+           email={meeting.email}
+           isAdmin={false} // Non-admin users
+           onClick={() => handleCardClick(meeting._id)}
+         />
+         
             ))}
           </div>
         ) : (

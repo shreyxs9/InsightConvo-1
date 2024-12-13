@@ -16,14 +16,22 @@ const createToken = (user) => {
 // Middleware to authenticate and extract user from token
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization'];
-  if (!token) return res.sendStatus(401);
+  if (!token) {
+      return res.status(401).json({ message: "Unauthorized: No token provided" });
+  }
 
-  jwt.verify(token, jwtSecret, (err, decoded) => {
-    if (err) return res.sendStatus(403);
-    req.user = decoded; // Attach the decoded token to the request
-    next();
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+          if (err.name === "TokenExpiredError") {
+              return res.status(401).json({ message: "Token expired. Please log in again." });
+          }
+          return res.status(401).json({ message: "Unauthorized: Invalid token" });
+      }
+      req.user = decoded;
+      next();
   });
 };
+
 
 // Signup route
 router.post('/signup', async (req, res) => {

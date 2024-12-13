@@ -21,6 +21,7 @@ interface Meeting {
   time: string;
   email: string;
   isUpcoming: boolean;
+
 }
 
 const AdminHome: React.FC = () => {
@@ -45,6 +46,7 @@ const AdminHome: React.FC = () => {
         setUserName(decodedToken.name);
       } catch (error) {
         console.error("Failed to decode token:", error);
+        navigate("/login");
       }
     } else {
       navigate("/login");
@@ -62,11 +64,11 @@ const AdminHome: React.FC = () => {
       }
       const response = await fetch("http://localhost:5000/admin/meetings", {
         headers: {
-          Authorization: token,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
-
+      
       if (!response.ok) {
         throw new Error("Failed to fetch meetings");
       }
@@ -75,10 +77,42 @@ const AdminHome: React.FC = () => {
       setMeetings(data);
     } catch (error) {
       console.error("Failed to fetch meetings:", error);
+      navigate("/login");
     }
   };
 
+  const deleteMeeting = async (meetingId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/admin/meetings/${meetingId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete meeting");
+      }
+
+      // Remove the deleted meeting from the state
+      setMeetings((prevMeetings) =>
+        prevMeetings.filter((meeting) => meeting._id !== meetingId)
+      );
+    } catch (error) {
+      console.error("Failed to delete meeting:", error);
+    }
+  };
+
+
   const handleCardClick = (meetingId: string) => {
+    console.log("Navigating to meeting details:", meetingId);
     navigate(`/admin/meeting/${meetingId}`);
   };
 
@@ -122,6 +156,15 @@ const AdminHome: React.FC = () => {
               )}
             </div>
           </div>
+          
+          {/* Add Meeting Button on Top */}
+          <button
+            onClick={toggleAddMeeting}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300"
+          >
+            <CalendarPlus size={20} />
+            <span>Add Meeting</span>
+          </button>
         </div>
 
         {/* Meetings Sections */}
@@ -145,14 +188,21 @@ const AdminHome: React.FC = () => {
                 {meetings
                   .filter((meeting) => meeting.isUpcoming)
                   .map((meeting) => (
-                    <MeetingCard
+                    <div 
                       key={meeting._id}
-                      name={meeting.name}
-                      date={meeting.date}
-                      time={meeting.time}
-                      email={meeting.email}
                       onClick={() => handleCardClick(meeting._id)}
-                    />
+                      className="cursor-pointer"
+                    >
+                      <MeetingCard
+               name={meeting.name}
+               isAdmin={true}
+  date={meeting.date}
+  time={meeting.time}
+  email={meeting.email}
+  onDelete={() => deleteMeeting(meeting._id)} // New delete handler
+
+/>
+                    </div>
                   ))}
               </div>
             )}
@@ -177,14 +227,20 @@ const AdminHome: React.FC = () => {
                 {meetings
                   .filter((meeting) => !meeting.isUpcoming)
                   .map((meeting) => (
-                    <MeetingCard
+                    <div 
                       key={meeting._id}
-                      name={meeting.name}
-                      date={meeting.date}
-                      time={meeting.time}
-                      email={meeting.email}
                       onClick={() => handleCardClick(meeting._id)}
-                    />
+                      className="cursor-pointer"> 
+                      <MeetingCard
+               name={meeting.name}
+               isAdmin={true}
+  date={meeting.date}
+  time={meeting.time}
+  email={meeting.email}
+  onDelete={() => deleteMeeting(meeting._id)} // New delete handler
+
+/>
+                    </div>
                   ))}
               </div>
             )}
@@ -202,19 +258,12 @@ const AdminHome: React.FC = () => {
             >
               <X size={24} />
             </button>
-            <AddMeeting onMeetingAdded={fetchMeetings} />
+            <AddMeeting onMeetingAdded={fetchMeetings} closePopup={toggleAddMeeting} />
           </div>
         </div>
       )}
 
-      {/* Floating Add Meeting Button */}
-      <button
-        onClick={toggleAddMeeting}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl hover:bg-blue-700 transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
-        aria-label="Add Meeting"
-      >
-        <CalendarPlus size={24} />
-      </button>
+      {/* Remove the floating button since we now have a top button */}
     </div>
   );
 };
