@@ -48,9 +48,8 @@ router.get("/evaluate-candidate/:meetingId", async (req, res) => {
     // 1. Resume and Job Description Matching Score
     const resumePrompt = `
     Analyze the following resume against the given job description:
-    1. Evaluate how well the candidate's skills, experiences, and qualifications align with the requirements of the job.
-    2. Consider factors such as technical skills, soft skills, relevant experiences, certifications, and overall compatibility with the role.
-    3. Assign a score out of 10, where 10 indicates a perfect match.
+    1. Evaluate how well the candidate's skills align with the requirements of the job, Focus primarily on technical skills, relevant experiences, projects.
+    2. Assign a score out of 10, where 10 indicates a perfect match.
 
     Resume:
     ${resumeContent}

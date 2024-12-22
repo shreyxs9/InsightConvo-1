@@ -15,6 +15,7 @@ const transcriptionRoutes = require("./routes/transcription");
 const evaluationRoutes = require("./routes/evaluation");
 const userRoutes = require("./routes/userdetails");
 const confidenceRoutes = require("./routes/confidence-check");
+const candidatesRoutes = require("./routes/candidates");
 
 // Initialize Express App
 const app = express();
@@ -40,6 +41,7 @@ app.use("/api", transcriptionRoutes);
 app.use("/api", evaluationRoutes);
 app.use("/api", userRoutes);
 app.use("/api", confidenceRoutes);
+app.use("/api", candidatesRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })

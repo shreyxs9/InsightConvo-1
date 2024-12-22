@@ -7,6 +7,7 @@ import UserHome from "./components/user/user_home";
 import Profile from "./components/user/Profile";
 import Interview from "./components/user/Meeting";
 import AdminPanel from "./components/admin/AdminPanel";
+import CandidatesList from "./components/admin/candidates";
 
 
 const ProtectedRoute: React.FC = () => {
@@ -67,6 +68,7 @@ function App() {
         <Route path="/admin" element={<AdminHome />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/admin/candidates" element={<CandidatesList />} />
       </Routes>
     </BrowserRouter>
   );
