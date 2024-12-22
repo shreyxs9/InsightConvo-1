@@ -4,10 +4,11 @@ const Meeting = require("../models/Meeting");
 const Resume = require("../models/Resume");
 const Transcription = require("../models/Transcript");
 const Emotion = require("../models/Emotion");
+const Evaluation = require("../models/Evaluation"); 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Gemini AI Setup
-const genAI = new GoogleGenerativeAI("AIzaSyA-wPQiu6SQ3uPs2UMWZziZAPyF97UJsjM");
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Helper Function to Get Score
@@ -29,15 +30,15 @@ router.get("/evaluate-candidate/:meetingId", async (req, res) => {
     const resume = await Resume.findOne({ email });
     const transcriptions = await Transcription.find({ email });
     const emotions = await Emotion.find({ email });
-
     if (!meeting || !resume || transcriptions.length === 0 || emotions.length === 0) {
       return res.status(404).json({ error: "Required data not found" });
     }
 
     const jobDescription = meeting.jobDescription;
     const resumeContent = resume.content;
-    const transcriptionTexts = transcriptions.map((t) => t.transcriptionText).join("\n");
-
+    const transcriptionTexts = transcriptions.map((t) => {
+      return `Question: ${t.currentQuestion}\nAnswer: ${t.transcription}`;
+    }).join("\n\n");    console.log(transcriptionTexts);
     // Extract Confidence and Overall Emotion
     const confidenceScores = emotions.map((e) => e.confidence * 10);
     const averageConfidence = 
@@ -57,20 +58,21 @@ router.get("/evaluate-candidate/:meetingId", async (req, res) => {
     Job Description:
     ${jobDescription}
     `;
-    const resumeScore = await getGeminiScore(resumePrompt);
+
+    let resumeScore = await getGeminiScore(resumePrompt);
+    if (resumeScore > 10) resumeScore = resumeScore / 10;
+
 
     // 2. Transcriptions and Follow-up Questions Matching Score
     const transcriptionPrompt = `
     Evaluate the following transcriptions by comparing the questions asked with the provided answers:
-    1. Assess the relevance and correctness of the answers in relation to the questions.
-    2. Consider the clarity, completeness, and depth of the answers.
-    3. Provide a score out of 10, where 10 indicates a perfect match between questions and answers.
+    1. Provide a score out of 10, where 10 indicates a perfect match between questions and answers.
 
     Transcriptions:
     ${transcriptionTexts}
     `;
     const transcriptionScore = await getGeminiScore(transcriptionPrompt);
-
+console.log(transcriptionPrompt);
     // 3. Overall Confidence Trend Analysis
     const confidencePrompt = `
     Analyze the following confidence scores of a candidate during the interview:
@@ -83,13 +85,38 @@ router.get("/evaluate-candidate/:meetingId", async (req, res) => {
     ${confidenceScores.join(", ")}
     `;
     const confidenceAnalysis = await model.generateContent(confidencePrompt);
-    console.log(confidenceAnalysis);
 
     // 4. Overall Score Calculation
     const overallScore = (resumeScore * 0.5) + (transcriptionScore * 0.3) + (averageConfidence * 0.2);
 
     // Determine Candidate Status
     const candidateStatus = overallScore > 7 ? "Selected" : "Rejected";
+    const existingEvaluation = await Evaluation.findOne({ email });
+    if (existingEvaluation) {
+      // Update the existing record
+      existingEvaluation.resumeScore = resumeScore;
+      existingEvaluation.transcriptionScore = transcriptionScore;
+      existingEvaluation.confidence = averageConfidence;
+      existingEvaluation.overallEmotion = overallEmotion;
+      existingEvaluation.overallScore = overallScore;
+      existingEvaluation.candidateStatus = candidateStatus;
+      existingEvaluation.confidenceAnalysis = confidenceAnalysis.response.text();
+      await existingEvaluation.save();
+    } else {
+      // Create a new record
+      const evaluation = new Evaluation({
+        meetingId,
+        email,
+        resumeScore,
+        transcriptionScore,
+        confidence: averageConfidence,
+        overallEmotion,
+        overallScore,
+        candidateStatus,
+        confidenceAnalysis: confidenceAnalysis.response.text(),
+      });
+      await evaluation.save();
+    }
 
     // Response
     res.json({

@@ -6,6 +6,7 @@ const axios = require("axios");
 const mongoose = require("mongoose"); // Import mongoose
 const router = express.Router();
 const Emotion = require("../models/Emotion");
+const Meeting = require("../models/Meeting");
 
 
 
@@ -27,8 +28,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Route to handle image upload and external API call
-router.post("/confidence", upload.single("screenshot"), async (req, res) => {
-  const { email } = req.body;
+router.post("/confidence/:meetingId", upload.single("screenshot"), async (req, res) => {
+  const { meetingId } = req.params;
   if (!req.file) {
     return res.status(400).send({ error: "No file uploaded" });
   }
@@ -39,6 +40,12 @@ router.post("/confidence", upload.single("screenshot"), async (req, res) => {
 
   try {
     // Read the image file and encode it as base64
+     const meeting = await Meeting.findById(meetingId);
+     if (!meeting) {
+      return res.status(404).json({ error: "Meeting not found." });
+    }
+        const email = meeting.email;
+
     const imageBase64 = fs.readFileSync(filePath, { encoding: "base64" });
 
     // Send the image to the external emotion detection API

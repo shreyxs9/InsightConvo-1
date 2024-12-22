@@ -114,7 +114,7 @@ router.post("/transcribe/:meetingId", upload.single("file"), async (req, res) =>
     });
 
     await transcriptionRecord.save();
-    console.log("Transcription successfully saved:", transcriptionRecord);
+    // console.log("Transcription successfully saved:", transcriptionRecord);
 
     res.json({
       transcription,
