@@ -8,7 +8,7 @@ const Evaluation = require("../models/Evaluation");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Gemini AI Setup
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Helper Function to Get Score
@@ -38,7 +38,7 @@ router.get("/evaluate-candidate/:meetingId", async (req, res) => {
     const resumeContent = resume.content;
     const transcriptionTexts = transcriptions.map((t) => {
       return `Question: ${t.currentQuestion}\nAnswer: ${t.transcription}`;
-    }).join("\n\n");    console.log(transcriptionTexts);
+    }).join("\n\n");  
     // Extract Confidence and Overall Emotion
     const confidenceScores = emotions.map((e) => e.confidence * 10);
     const averageConfidence = 
@@ -64,14 +64,12 @@ router.get("/evaluate-candidate/:meetingId", async (req, res) => {
 
     // 2. Transcriptions and Follow-up Questions Matching Score
     const transcriptionPrompt = `
-    Evaluate the following transcriptions by comparing the questions asked with the provided answers:
-    1. Provide a score out of 10, where 10 indicates a perfect match between questions and answers.
+    Evaluate the following transcriptions by comparing accuracy:
+    1. Provide a score out of 10
 
     Transcriptions:
-    ${transcriptionTexts}
-    `;
+    ${transcriptionTexts}`;
     const transcriptionScore = await getGeminiScore(transcriptionPrompt);
-console.log(transcriptionPrompt);
     // 3. Overall Confidence Trend Analysis
     const confidencePrompt = `
     Analyze the following confidence scores of a candidate during the interview:
