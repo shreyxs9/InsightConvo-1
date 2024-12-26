@@ -5,13 +5,14 @@ const mongoose = require("mongoose");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Transcription = require("../models/Transcript");
 const Meeting = require("../models/Meeting");
+require('dotenv').config(); // Load environment variables from .env file
 
 const router = express.Router();
 const upload = multer();
 
 // AssemblyAI and Google Generative AI API Keys
-const ASSEMBLY_AI_API_KEY = "01b3b3567b654babb19545d0f6728235";
-const genAI = new GoogleGenerativeAI("AIzaSyA-wPQiu6SQ3uPs2UMWZziZAPyF97UJsjM");
+const ASSEMBLY_AI_API_KEY = process.env.ASSEMBLY_AI_API_KEY;
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Transcription and follow-up handling
