@@ -1,144 +1,170 @@
-
 # InsightConvo
 
-InsightConvo is a web application designed to facilitate candidate evaluations through interviews, resume analysis, and confidence assessments. The application includes both frontend and backend components.
+InsightConvo is an AI-powered video interviewing platform designed to streamline the hiring process. This full-stack application features separate user and admin interfaces, real-time data handling, and advanced evaluation tools to ensure efficient and accurate assessments.
 
-## Getting Started
+---
 
-Follow these instructions to get a copy of the project up and running on your local machine.
+## Features
+
+### **User Interface**
+- **Login and Signup**: Secure authentication for users and admins.
+- **Profile Management**: Users can manage their profiles and access meeting details.
+- **Video Interviews**: Conduct video meetings with confidence evaluation.
+
+### **Admin Interface**
+- **Admin Dashboard**: Manage candidate interviews, evaluate responses, and oversee meeting schedules.
+- **Candidate List**: View and manage registered candidates.
+
+### **Backend**
+- **Authentication**: Token-based authentication with protected routes.
+- **Data Management**: MongoDB for storing user, meeting, and evaluation data.
+- **API Endpoints**: Modularized endpoints for handling meetings, resumes, transcriptions, and evaluations.
+- **Error Handling**: Middleware for managing errors and ensuring API reliability.
+
+---
+
+## Tech Stack
+
+### **Frontend**
+- **Framework**: React (with TypeScript)
+- **Styling**: TailwindCSS
+- **Routing**: React Router
+
+### **Backend**
+- **Framework**: Node.js with Express
+- **Database**: MongoDB (via Mongoose)
+- **Middleware**: CORS, Body-Parser, Cookie-Parser
+
+---
+
+## Directory Structure
+
+```
+shreyxs9-insightconvo-1/
+├── readme.md
+├── backend/
+│   ├── index.js
+│   ├── models/
+│   ├── routes/
+│   ├── package.json
+│   └── package-lock.json
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   ├── package.json
+│   └── package-lock.json
+```
+
+---
+
+## Installation
 
 ### Prerequisites
-
-- Node.js
-- npm or yarn
+- Node.js (v16 or higher)
 - MongoDB
 
-### Installing
-
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/yourusername/InsightConvo.git
-   cd InsightConvo
-   ```
-
-2. Set up the backend:
-   ```sh
+### **Backend Setup**
+1. Navigate to the backend directory:
+   ```bash
    cd backend
+   ```
+2. Install dependencies:
+   ```bash
    npm install
    ```
-
-3. Set up the frontend:
-   ```sh
-   cd ../frontend
-   npm install
-   ```
-
-4. Create a `.env` file in the 
-
-backend
-
- directory with the following content:
-   ```
-   MONGODB_URI=your_mongodb_uri
-   JWT_SECRET=your_jwt_secret
+3. Create a `.env` file with the following variables:
+   ```env
+   MONGODB_URI=your-mongodb-uri
    FRONTEND_URL=http://localhost:5173
-   ASSEMBLY_AI_API_KEY=your_assembly_ai_api_key
-   GOOGLE_GENERATIVE_AI_API_KEY=your_google_generative_ai_api_key
+   PORT=5000
    ```
-
-### Running the Application
-
-1. Start the backend server:
-   ```sh
-   cd backend
+4. Start the server:
+   ```bash
    npm start
    ```
 
-2. Start the frontend development server:
-   ```sh
-   cd ../frontend
+### **Frontend Setup**
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
    npm run dev
    ```
 
-3. Open your browser and navigate to `http://localhost:5173`.
+The application will be available at `http://localhost:5173`.
 
-## Usage
+---
 
-- Sign up or log in to the application.
-- Admin users can manage meetings, evaluate candidates, and view evaluation results.
-- Users can participate in interviews, upload resumes, and view their profiles.
+## API Endpoints
 
-## Project Structure
+### Authentication
+- `POST /api/auth/login`: User login
+- `POST /api/auth/signup`: User signup
 
-```
-InsightConvo/
-├── backend/
-│   ├── .env
-│   ├── index.js
-│   ├── models/
-│   │   ├── Emotion.js
-│   │   ├── Evaluation.js
-│   │   ├── Meeting.js
-│   │   ├── Resume.js
-│   │   ├── Transcript.js
-│   │   └── user.js
-│   ├── routes/
-│   │   ├── admin_meeting.js
-│   │   ├── auth.js
-│   │   ├── candidates.js
-│   │   ├── confidence-check.js
-│   │   ├── evaluation.js
-│   │   ├── resume.js
-│   │   ├── transcription.js
-│   │   └── userdetails.js
-│   ├── uploads/
-│   └── package.json
-├── frontend/
-│   ├── .gitignore
-│   ├── index.html
-│   ├── package.json
-│   ├── public/
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── components/
-│   │   │   ├── admin/
-│   │   │   │   ├── AdminPanel.tsx
-│   │   │   │   ├── admin_home.tsx
-│   │   │   │   └── candidates.tsx
-│   │   │   ├── login.tsx
-│   │   │   ├── signup.tsx
-│   │   │   ├── user/
-│   │   │   │   ├── Meeting.tsx
-│   │   │   │   ├── Profile.tsx
-│   │   │   │   └── user_home.tsx
-│   │   ├── models/
-│   │   │   ├── addmeetings.tsx
-│   │   │   ├── meetingcard.tsx
-│   │   │   └── RulesAndRegulations.tsx
-│   │   └── vite-env.d.ts
-│   ├── tsconfig.app.json
-│   ├── tsconfig.json
-│   ├── tsconfig.node.json
-│   └── vite.config.ts
-└── readme.md
-```
+### Meetings
+- `GET /admin/meetings`: Fetch admin meetings
+- `POST /user/meetings`: Create user meeting
+
+### Evaluations
+- `POST /api/evaluation`: Submit evaluation
+
+### Transcriptions
+- `POST /api/transcription`: Upload and process transcription
+
+For a complete list, refer to the backend `routes/` directory.
+
+---
+
+## Scripts
+
+### **Frontend**
+- `npm run dev`: Start the development server
+- `npm run build`: Build the application for production
+- `npm run lint`: Lint the codebase
+
+### **Backend**
+- `npm start`: Start the server
+- `npm run dev`: Start the server in development mode
+
+---
 
 ## Contributing
-
 1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-branch`).
-3. Make your changes.
-4. Commit your changes (`git commit -m 'Add some feature'`).
-5. Push to the branch (`git push origin feature-branch`).
-6. Open a pull request.
+2. Create a new branch:
+   ```bash
+   git checkout -b feature-name
+   ```
+3. Commit changes:
+   ```bash
+   git commit -m "Description of changes"
+   ```
+4. Push to the branch:
+   ```bash
+   git push origin feature-name
+   ```
+5. Open a pull request.
+
+---
 
 ## License
+This project is licensed under the MIT License. See the LICENSE file for details.
 
-This project is licensed under the MIT License - see the LICENSE.md file for details.
+---
 
 ## Acknowledgments
+- [Express.js Documentation](https://expressjs.com/)
+- [React Documentation](https://reactjs.org/docs/)
+- [MongoDB Documentation](https://www.mongodb.com/docs/)
 
-- Thanks to all contributors and supporters.
-- Special thanks to the developers of the libraries and tools used in this project.
-```
+---
+
+Feel free to reach out for any queries or contributions!
 
