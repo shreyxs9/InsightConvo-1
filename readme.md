@@ -1,120 +1,144 @@
+
 # InsightConvo
 
-InsightConvo is an AI-based video interviewing platform that improves the efficiency of the hiring process. It will replace human interviewers with an intelligent bot that conducts interviews, analyzes candidate responses, and provides insights. The platform will offer real-time emotion recognition, tone analysis, eye movement tracking, and automated speech-to-text transcription. It will generate follow-up questions, validate the quality and accuracy of the response given against the questions asked, compare responses to their CVs, and provide instant feedback. The system will finally provide a behavioral insights dashboard and an overall summary of the interview and rating of the candidate.
+InsightConvo is a web application designed to facilitate candidate evaluations through interviews, resume analysis, and confidence assessments. The application includes both frontend and backend components.
 
-## Project Structure
+## Getting Started
 
-INSIGHTCONVO
-├── backend
-│ ├── models
-│ │ ├── meeting.js
-│ │ └── user.js
-│ ├── routes
-│ │ ├── admin_meeting.js
-│ │ ├── auth.js
-│ │ └── user_meeting.js
-│ ├── .env
-│ ├── index.js
-│ ├── package-lock.json
-│ └── package.json
-└── frontend
-├── src
-│ ├── components
-│ │ ├── admin
-│ │ │ └── admin_home.tsx
-│ │ └── user
-│ │ ├── login.tsx
-│ │ ├── signup.tsx
-│ │ ├── meeting.tsx
-│ │ ├── Profile.tsx
-│ │ └── user_home.tsx
-│ ├── models
-│ │ ├── addmeetings.tsx
-│ │ ├── meetingcard.tsx
-│ │ └── nav.tsx
-│ ├── App.css
-│ ├── App.tsx
-│ ├── index.css
-│ ├── main.tsx
-│ └── vite-env.d.ts
-├── .gitignore
-├── eslint.config.js
-├── index.html
-├── package-lock.json
-├── package.json
-├── postcss.config.js
-├── README.md
-├── tailwind.config.js
-├── tsconfig.app.json
-└── tsconfig.json
+Follow these instructions to get a copy of the project up and running on your local machine.
 
-## Environment Variables
+### Prerequisites
 
-Before running the backend, create a `.env` file in the `backend` folder with the following content:
+- Node.js
+- npm or yarn
+- MongoDB
 
-MONGODB_URI=your_mongodb_uri
-JWT_SECRET=your_jwt_secret
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/google/callback
-BASE_FRONTEND_URL=http://localhost:5173
-
-Replace `your_mongodb_uri`, `your_jwt_secret`, `your_google_client_id`, and `your_google_client_secret` with your actual credentials.
-
-## Features
-
-- User Authentication (Login and Signup)
-- Meeting Management
-- Admin and User Role Separation
-- Responsive User Interface
-
-## Technology Stack
-
-- **Frontend:** TypeScript, React, Tailwind CSS
-- **Backend:** Node.js, Express
-- **Database:** MongoDB
-
-## Installation
-
-To set up the project locally, follow these steps:
+### Installing
 
 1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/cchaithanya83/InsightConvo.git
+   ```sh
+   git clone https://github.com/yourusername/InsightConvo.git
    cd InsightConvo
-
-
    ```
 
-2. Install backend dependencies:
-
-   ```bash
+2. Set up the backend:
+   ```sh
    cd backend
    npm install
    ```
 
-3. Install frontend dependencies:
-   ```bash
+3. Set up the frontend:
+   ```sh
    cd ../frontend
    npm install
    ```
 
-## Usage
+4. Create a `.env` file in the 
 
-To run the application:
+backend
 
-1. Start the backend server:
-
-   ```bash
-   cd backend
-   npm run test
+ directory with the following content:
+   ```
+   MONGODB_URI=your_mongodb_uri
+   JWT_SECRET=your_jwt_secret
+   FRONTEND_URL=http://localhost:5173
+   ASSEMBLY_AI_API_KEY=your_assembly_ai_api_key
+   GOOGLE_GENERATIVE_AI_API_KEY=your_google_generative_ai_api_key
    ```
 
-2. Start the frontend application:
-   ```bash
-   cd frontend
+### Running the Application
+
+1. Start the backend server:
+   ```sh
+   cd backend
+   npm start
+   ```
+
+2. Start the frontend development server:
+   ```sh
+   cd ../frontend
    npm run dev
    ```
 
-Visit `http://localhost:5173` in your browser to access the application.
+3. Open your browser and navigate to `http://localhost:5173`.
+
+## Usage
+
+- Sign up or log in to the application.
+- Admin users can manage meetings, evaluate candidates, and view evaluation results.
+- Users can participate in interviews, upload resumes, and view their profiles.
+
+## Project Structure
+
+```
+InsightConvo/
+├── backend/
+│   ├── .env
+│   ├── index.js
+│   ├── models/
+│   │   ├── Emotion.js
+│   │   ├── Evaluation.js
+│   │   ├── Meeting.js
+│   │   ├── Resume.js
+│   │   ├── Transcript.js
+│   │   └── user.js
+│   ├── routes/
+│   │   ├── admin_meeting.js
+│   │   ├── auth.js
+│   │   ├── candidates.js
+│   │   ├── confidence-check.js
+│   │   ├── evaluation.js
+│   │   ├── resume.js
+│   │   ├── transcription.js
+│   │   └── userdetails.js
+│   ├── uploads/
+│   └── package.json
+├── frontend/
+│   ├── .gitignore
+│   ├── index.html
+│   ├── package.json
+│   ├── public/
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── components/
+│   │   │   ├── admin/
+│   │   │   │   ├── AdminPanel.tsx
+│   │   │   │   ├── admin_home.tsx
+│   │   │   │   └── candidates.tsx
+│   │   │   ├── login.tsx
+│   │   │   ├── signup.tsx
+│   │   │   ├── user/
+│   │   │   │   ├── Meeting.tsx
+│   │   │   │   ├── Profile.tsx
+│   │   │   │   └── user_home.tsx
+│   │   ├── models/
+│   │   │   ├── addmeetings.tsx
+│   │   │   ├── meetingcard.tsx
+│   │   │   └── RulesAndRegulations.tsx
+│   │   └── vite-env.d.ts
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+└── readme.md
+```
+
+## Contributing
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Make your changes.
+4. Commit your changes (`git commit -m 'Add some feature'`).
+5. Push to the branch (`git push origin feature-branch`).
+6. Open a pull request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE.md file for details.
+
+## Acknowledgments
+
+- Thanks to all contributors and supporters.
+- Special thanks to the developers of the libraries and tools used in this project.
+```
+
